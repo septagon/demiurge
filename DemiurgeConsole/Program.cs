@@ -17,27 +17,43 @@ namespace DemiurgeConsole
 
         private static void RunWateryScenario()
         {
-            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers.png");
+            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers_small.png");
             Field2d<float> field = new FieldFromBitmap(jranjana);
-            BrownianTree tree = new BrownianTree(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
+            BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
             HydrologicalField hydro = new HydrologicalField(tree);
+            var sets = ContiguousSets.FindSets(hydro);
+
+            // Contiguous shores
+            // BFS for river trees
 
             Bitmap bmp = new Bitmap(hydro.Width, hydro.Height);
-            for (int x = 0, y = 0; y < bmp.Height; y += ++x / bmp.Width, x %= bmp.Width)
+            //for (int x = 0, y = 0; y < bmp.Height; y += ++x / bmp.Width, x %= bmp.Width)
+            //{
+            //    //bmp.SetPixel(x, y, tree[y, x] == BrownianTree.Availability.Available ? Color.White : Color.Black);
+            //    switch (hydro[y, x])
+            //    {
+            //        case HydrologicalField.LandType.Land:
+            //            bmp.SetPixel(x, y, Color.Wheat);
+            //            break;
+            //        case HydrologicalField.LandType.Shore:
+            //            bmp.SetPixel(x, y, Color.Teal);
+            //            break;
+            //        case HydrologicalField.LandType.Ocean:
+            //            bmp.SetPixel(x, y, Color.DarkBlue);
+            //            break;
+            //    }
+            //}
+            System.Random rand = new System.Random();
+            foreach (var hs in sets.Values)
             {
-                //bmp.SetPixel(x, y, tree[y, x] == BrownianTree.Availability.Available ? Color.White : Color.Black);
-                switch (hydro[y, x])
+                foreach (var ps in hs)
                 {
-                    case HydrologicalField.LandType.Land:
-                        bmp.SetPixel(x, y, Color.Wheat);
-                        break;
-                    case HydrologicalField.LandType.Shore:
-                        bmp.SetPixel(x, y, Color.Teal);
-                        break;
-                    case HydrologicalField.LandType.Ocean:
-                        bmp.SetPixel(x, y, Color.DarkBlue);
-                        break;
+                    Color color = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
+                    foreach (Point2d p in ps)
+                    {
+                        bmp.SetPixel(p.x, p.y, color);
+                    }
                 }
             }
             bmp.Save("C:\\Users\\Justin Murray\\Desktop\\tree.png");

@@ -21,15 +21,20 @@ namespace DemiurgeLib
             this.random = random ?? new Random();
         }
 
-        public BrownianTree(IField2d<float> baseField, Func<float, Availability> conversion, Random random = null)
-            : base(baseField.Width, baseField.Height)
+        private BrownianTree(int width, int height) : base(width, height) { }
+
+        public static BrownianTree CreateFromOther<T>(IField2d<T> baseField, Func<T, Availability> conversion, Random random = null)
         {
-            for (int x = 0, y = 0; y < this.Height; y += ++x / this.Width, x %= this.Width)
+            BrownianTree tree = new BrownianTree(baseField.Width, baseField.Height);
+
+            for (int x = 0, y = 0; y < tree.Height; y += ++x / tree.Width, x %= tree.Width)
             {
-                this[y, x] = conversion(baseField[y, x]);
+                tree[y, x] = conversion(baseField[y, x]);
             }
 
-            this.random = random ?? new Random();
+            tree.random = random ?? new Random();
+
+            return tree;
         }
 
         // TODO: Porting all this super fast from old code, should remove this ASAP.
