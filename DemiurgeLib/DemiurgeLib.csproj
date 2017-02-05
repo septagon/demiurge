@@ -42,7 +42,10 @@
   <ItemGroup>
     <Compile Include="CommonTransforms.cs" />
     <Compile Include="Composition2d.cs" />
-    <Compile Include="I2dField.cs" />
+    <Compile Include="Field2d.cs" />
+    <Compile Include="IField2d.cs" />
+    <Compile Include="Noise\DiamondSquareNoise.cs" />
+    <Compile Include="Noise\DiamondSquare2D.cs" />
     <Compile Include="Noise\OpenSimplexNoise.cs" />
     <Compile Include="Noise\Simplex2D.cs" />
     <Compile Include="NormalizedComposition2d.cs" />

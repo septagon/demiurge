@@ -4,25 +4,25 @@ using System.Linq.Expressions;
 
 namespace DemiurgeLib
 {
-    public class Composition2d<TValue> : I2dField<TValue>
+    public class Composition2d<T> : IField2d<T>
     {
         public const int INVALID_WIDTH = -1;
         public const int INVALID_HEIGHT = -1;
 
-        private static Func<TValue, TValue, TValue> Add;
+        private static Func<T, T, T> Add;
 
         static Composition2d()
         {
             // http://www.yoda.arachsys.com/csharp/genericoperators.html
-            ParameterExpression lh = Expression.Parameter(typeof(TValue), "lh");
-            ParameterExpression rh = Expression.Parameter(typeof(TValue), "rh");
+            ParameterExpression lh = Expression.Parameter(typeof(T), "lh");
+            ParameterExpression rh = Expression.Parameter(typeof(T), "rh");
             BinaryExpression addBody = Expression.Add(lh, rh);
-            Composition2d<TValue>.Add = Expression.Lambda<Func<TValue, TValue, TValue>>(addBody, lh, rh).Compile();
+            Composition2d<T>.Add = Expression.Lambda<Func<T, T, T>>(addBody, lh, rh).Compile();
         }
 
-        private I2dField<TValue>[] fields;
+        private IField2d<T>[] fields;
 
-        public Composition2d(params I2dField<TValue>[] fields)
+        public Composition2d(params IField2d<T>[] fields)
         {
             this.fields = fields;
             
@@ -34,17 +34,17 @@ namespace DemiurgeLib
             }
         }
 
-        virtual public TValue this[int y, int x]
+        virtual public T this[int y, int x]
         {
             get
             {
                 if (this.fields.Length == 0)
                 {
-                    return default(TValue);
+                    return default(T);
                 }
                 else
                 {
-                    TValue value = this.fields[0][y, x];
+                    T value = this.fields[0][y, x];
                     for (int idx = 1; idx < this.fields.Length; idx++)
                     {
                         value = Add(value, this.fields[idx][y, x]);

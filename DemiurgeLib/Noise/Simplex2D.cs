@@ -4,18 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-using DemiurgeLib.OpenSimplex;
+using DemiurgeLib.NoiseAlgorithms;
 
 namespace DemiurgeLib.Noise
 {
-    public class Simplex2D : I2dField<float>
+    public class Simplex2D : Field2d<float>
     {
-        private float[,] values;
-
         public Simplex2D(int width, int height, float scale) : this(width, height, scale, new OpenSimplexNoise()) { }
         public Simplex2D(int width, int height, float scale, long seed) : this(width, height, scale, new OpenSimplexNoise(seed)) { }
 
         private Simplex2D(int width, int height, float scale, OpenSimplexNoise osn)
+            : base(width, height)
         {
             this.values = new float[height, width];
 
@@ -24,30 +23,6 @@ namespace DemiurgeLib.Noise
                 // OpenSimplexNoise produces doubles int the range (-1, 1); convert to normalized floats.
                 double val = osn.Evaluate(x * scale, y * scale);
                 values[y, x] = (float)(0.5 + val / 2.0);
-            }
-        }
-
-        public float this[int y, int x]
-        {
-            get
-            {
-                return values[y, x];
-            }
-        }
-
-        public int Width
-        {
-            get
-            {
-                return values.GetLength(1);
-            }
-        }
-
-        public int Height
-        {
-            get
-            {
-                return values.GetLength(0);
             }
         }
     }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DemiurgeLib
 {
-    public interface I2dField<TValue>
+    public interface IField2d<TValue>
     {
         TValue this[int y, int x]
         {
