@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DemiurgeLib
+﻿namespace DemiurgeLib
 {
     public class Field2d<T> : IField2d<T>
     {
