@@ -26,10 +26,10 @@ namespace DemiurgeLib.Noise
 
             for (int x = 0, y = 0; y < this.Height; y += ++x / this.Width, x %= this.Width)
             {
-                this.values[y, x] = (float)noise[y, x];
+                this[y, x] = (float)noise[y, x];
 
-                min = Math.Min(min, this.values[y, x]);
-                max = Math.Max(max, this.values[y, x]);
+                min = Math.Min(min, this[y, x]);
+                max = Math.Max(max, this[y, x]);
             }
         }
     }

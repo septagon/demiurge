@@ -40,6 +40,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BrownianTree.cs" />
     <Compile Include="CommonTransforms.cs" />
     <Compile Include="Composition2d.cs" />
     <Compile Include="Field2d.cs" />
@@ -49,6 +50,7 @@
     <Compile Include="Noise\OpenSimplexNoise.cs" />
     <Compile Include="Noise\Simplex2D.cs" />
     <Compile Include="NormalizedComposition2d.cs" />
+    <Compile Include="Point2d.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Transformation2d.cs" />
   </ItemGroup>

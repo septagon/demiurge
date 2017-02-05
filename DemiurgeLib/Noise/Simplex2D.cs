@@ -16,13 +16,11 @@ namespace DemiurgeLib.Noise
         private Simplex2D(int width, int height, float scale, OpenSimplexNoise osn)
             : base(width, height)
         {
-            this.values = new float[height, width];
-
             for (int x = 0, y = 0; y < height; y += ++x / width, x %= width)
             {
                 // OpenSimplexNoise produces doubles int the range (-1, 1); convert to normalized floats.
                 double val = osn.Evaluate(x * scale, y * scale);
-                values[y, x] = (float)(0.5 + val / 2.0);
+                this[y, x] = (float)(0.5 + val / 2.0);
             }
         }
     }

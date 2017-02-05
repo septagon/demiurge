@@ -8,7 +8,7 @@ namespace DemiurgeLib
 {
     public class Field2d<T> : IField2d<T>
     {
-        protected T[,] values;
+        private T[,] values;
 
         protected Field2d(int width, int height)
         {
@@ -29,7 +29,12 @@ namespace DemiurgeLib
         {
             get
             {
-                return values[y, x];
+                return this.values[y, x];
+            }
+
+            protected set
+            {
+                this.values[y, x] = value;
             }
         }
 
