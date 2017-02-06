@@ -43,6 +43,7 @@
     <Compile Include="BrownianTree.cs" />
     <Compile Include="CommonTransforms.cs" />
     <Compile Include="Composition2d.cs" />
+    <Compile Include="ContiguousSets.cs" />
     <Compile Include="Field2d.cs" />
     <Compile Include="HydrologicalField.cs" />
     <Compile Include="IField2d.cs" />

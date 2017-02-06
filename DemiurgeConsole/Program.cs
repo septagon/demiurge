@@ -22,7 +22,30 @@ namespace DemiurgeConsole
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
             HydrologicalField hydro = new HydrologicalField(tree);
-            var sets = ContiguousSets.FindSets(hydro);
+            var sets = ContiguousSets.FindContiguousSets(hydro);
+            System.Collections.Generic.List<ContiguousSets.TreeNode<Point2d>> riverForest = new System.Collections.Generic.List<ContiguousSets.TreeNode<Point2d>>();
+            foreach (var river in sets[HydrologicalField.LandType.Shore])
+            {
+                riverForest.Add(ContiguousSets.MakeTreeFromContiguousSet(river, pt =>
+                {
+                    // Warning: naive non-boundary-checking test-only implementation.  This will probably CRASH THE PROGRAM
+                    // if a river happens to border the edge of the map.
+                    return
+                        hydro[pt.y + 1, pt.x + 1] == HydrologicalField.LandType.Ocean ||
+                        hydro[pt.y + 1, pt.x + 0] == HydrologicalField.LandType.Ocean ||
+                        hydro[pt.y + 1, pt.x - 1] == HydrologicalField.LandType.Ocean ||
+                        hydro[pt.y + 0, pt.x - 1] == HydrologicalField.LandType.Ocean ||
+                        hydro[pt.y - 1, pt.x - 1] == HydrologicalField.LandType.Ocean ||
+                        hydro[pt.y - 1, pt.x + 0] == HydrologicalField.LandType.Ocean ||
+                        hydro[pt.y - 1, pt.x + 1] == HydrologicalField.LandType.Ocean ||
+                        hydro[pt.y + 0, pt.x + 1] == HydrologicalField.LandType.Ocean;
+                }));
+            }
+
+            foreach (var river in riverForest)
+            {
+                System.Console.WriteLine("Got a river with depth " + river.Depth() + "\tsize " + river.Size() + "\tfork rank " + river.ForkRank() + "\tmax fork " + river.MaxForkRank());
+            }
 
             // Contiguous shores
             // BFS for river trees

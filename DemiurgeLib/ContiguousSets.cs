@@ -1,11 +1,67 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace DemiurgeLib.Common
 {
     public class ContiguousSets
     {
-        public static Dictionary<T, HashSet<PointSet2d>> FindSets<T>(IField2d<T> field)
+        public class TreeNode<T>
+        {
+            public T value;
+            public TreeNode<T> parent;
+            public HashSet<TreeNode<T>> children;
+
+            public TreeNode(T value, TreeNode<T> parent = null)
+            {
+                this.value = value;
+                this.parent = parent;
+                this.children = new HashSet<TreeNode<T>>();
+
+                if (this.parent != null)
+                {
+                    this.parent.children.Add(this);
+                }
+            }
+
+            public void SetParent(TreeNode<T> newParent)
+            {
+                if (this.parent != null)
+                {
+                    this.parent.children.Remove(this);
+                }
+
+                this.parent = newParent;
+
+                if (this.parent != null)
+                {
+                    this.parent.children.Add(this);
+                }
+            }
+
+            public int Size()
+            {
+                return 1 + this.children.Sum(node => node.Size());
+            }
+
+            public int Depth()
+            {
+                return this.children.Count == 0 ? 0 : 1 + this.children.Select(node => node.Depth()).Max();
+            }
+
+            public int ForkRank()
+            {
+                return this.children.Count <= 1 ? 0 : this.children.Select(node => node.Depth()).Min();
+            }
+
+            // TODO: this is WILDLY inefficient without caching results.  Cache results or eliminate this method altogether.
+            public int MaxForkRank()
+            {
+                return this.children.Count == 0 ? 0 : Math.Max(ForkRank(), this.children.Select(node => node.MaxForkRank()).Max());
+            }
+        }
+
+        public static Dictionary<T, HashSet<PointSet2d>> FindContiguousSets<T>(IField2d<T> field)
         {
             Dictionary<T, HashSet<PointSet2d>> categoryToSets = new Dictionary<T, HashSet<PointSet2d>>();
 
@@ -69,6 +125,53 @@ namespace DemiurgeLib.Common
             }
 
             return categoryToSets;
+        }
+
+        public static TreeNode<Point2d> MakeTreeFromContiguousSet(PointSet2d pointSet, Func<Point2d, bool> isRoot)
+        {
+            Point2d? rootPt = null;
+            foreach (var pt in pointSet)
+            {
+                if (isRoot(pt))
+                {
+                    rootPt = pt;
+                }
+            }
+
+            if (!rootPt.HasValue)
+            {
+                return null;
+            }
+            else
+            {
+                TreeNode<Point2d> root = new TreeNode<Point2d>(rootPt.Value);
+
+                PointSet2d alreadyIncluded = new PointSet2d();
+                alreadyIncluded.Add(root.value);
+
+                Point2d[] neighbors = new Point2d[8];
+
+                Queue<TreeNode<Point2d>> searchSpace = new Queue<TreeNode<Point2d>>();
+                searchSpace.Enqueue(root);
+
+                while (searchSpace.Count > 0)
+                {
+                    var node = searchSpace.Dequeue();
+
+                    SetNeighbors(node.value, ref neighbors);
+                    for (int idx = 0; idx < neighbors.Length; idx++)
+                    {
+                        Point2d pt = neighbors[idx];
+                        if (pointSet.Contains(pt) && !alreadyIncluded.Contains(pt))
+                        {
+                            searchSpace.Enqueue(new TreeNode<Point2d>(pt, node));
+                            alreadyIncluded.Add(pt);
+                        }
+                    }
+                }
+
+                return root;
+            }
         }
 
         private static void SetNeighbors(Point2d center, ref Point2d[] neighbors)
