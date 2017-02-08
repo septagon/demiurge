@@ -14,6 +14,16 @@ namespace DemiurgeLib.Common
             this.y = y;
         }
 
+        public static bool operator ==(Point2d a, Point2d b)
+        {
+            return a.x == b.x && a.y == b.y;
+        }
+
+        public static bool operator !=(Point2d a, Point2d b)
+        {
+            return !(a == b);
+        }
+
         public static Point2d operator +(Point2d a, Point2d b)
         {
             return new Point2d(a.x + b.x, a.y + b.y);

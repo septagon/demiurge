@@ -1,6 +1,7 @@
 ﻿using DemiurgeLib;
 using DemiurgeLib.Common;
 using System.Drawing;
+using System.Linq;
 
 namespace DemiurgeConsole
 {
@@ -23,7 +24,7 @@ namespace DemiurgeConsole
             tree.RunDefaultTree();
             HydrologicalField hydro = new HydrologicalField(tree);
             var sets = ContiguousSets.FindContiguousSets(hydro);
-            System.Collections.Generic.List<ContiguousSets.TreeNode<Point2d>> riverForest = new System.Collections.Generic.List<ContiguousSets.TreeNode<Point2d>>();
+            System.Collections.Generic.List<TreeNode<Point2d>> riverForest = new System.Collections.Generic.List<TreeNode<Point2d>>();
             foreach (var river in sets[HydrologicalField.LandType.Shore])
             {
                 riverForest.Add(ContiguousSets.MakeTreeFromContiguousSet(river, pt =>
@@ -41,10 +42,16 @@ namespace DemiurgeConsole
                         hydro[pt.y + 0, pt.x + 1] == HydrologicalField.LandType.Ocean;
                 }));
             }
+            DrainageField draino = new DrainageField(hydro, riverForest);
 
-            foreach (var river in riverForest)
+            using (var file = System.IO.File.OpenWrite("C:\\Users\\Justin Murray\\Desktop\\data.csv"))
+            using (var writer = new System.IO.StreamWriter(file))
             {
-                System.Console.WriteLine("Got a river with depth " + river.Depth() + "\tsize " + river.Size() + "\tfork rank " + river.ForkRank() + "\tmax fork " + river.MaxForkRank());
+                riverForest.Select(river =>
+                {
+                    writer.WriteLine(river.Size() + "," + river.Depth() + "," + river.ForkRank() + "," + river.MaxForkRank());
+                    return 0;
+                }).ToArray();
             }
 
             // Contiguous shores
@@ -72,11 +79,21 @@ namespace DemiurgeConsole
             {
                 foreach (var ps in hs)
                 {
-                    Color color = Color.FromArgb(rand.Next(256), rand.Next(256), rand.Next(256));
+                    Color color = Color.FromArgb(rand.Next(192), rand.Next(192), rand.Next(192));
                     foreach (Point2d p in ps)
                     {
                         bmp.SetPixel(p.x, p.y, color);
                     }
+                }
+            }
+            foreach (var landmass in sets[HydrologicalField.LandType.Land])
+            {
+                foreach (Point2d p in landmass)
+                {
+                    Point2d drain = draino[p.y, p.x];
+                    Color c = bmp.GetPixel(drain.x, drain.y);
+                    c = Color.FromArgb(c.R + 64, c.G + 64, c.B + 64);
+                    bmp.SetPixel(p.x, p.y, c);
                 }
             }
             bmp.Save("C:\\Users\\Justin Murray\\Desktop\\tree.png");

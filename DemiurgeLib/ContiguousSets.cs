@@ -6,61 +6,6 @@ namespace DemiurgeLib.Common
 {
     public class ContiguousSets
     {
-        public class TreeNode<T>
-        {
-            public T value;
-            public TreeNode<T> parent;
-            public HashSet<TreeNode<T>> children;
-
-            public TreeNode(T value, TreeNode<T> parent = null)
-            {
-                this.value = value;
-                this.parent = parent;
-                this.children = new HashSet<TreeNode<T>>();
-
-                if (this.parent != null)
-                {
-                    this.parent.children.Add(this);
-                }
-            }
-
-            public void SetParent(TreeNode<T> newParent)
-            {
-                if (this.parent != null)
-                {
-                    this.parent.children.Remove(this);
-                }
-
-                this.parent = newParent;
-
-                if (this.parent != null)
-                {
-                    this.parent.children.Add(this);
-                }
-            }
-
-            public int Size()
-            {
-                return 1 + this.children.Sum(node => node.Size());
-            }
-
-            public int Depth()
-            {
-                return this.children.Count == 0 ? 0 : 1 + this.children.Select(node => node.Depth()).Max();
-            }
-
-            public int ForkRank()
-            {
-                return this.children.Count <= 1 ? 0 : this.children.Select(node => node.Depth()).Min();
-            }
-
-            // TODO: this is WILDLY inefficient without caching results.  Cache results or eliminate this method altogether.
-            public int MaxForkRank()
-            {
-                return this.children.Count == 0 ? 0 : Math.Max(ForkRank(), this.children.Select(node => node.MaxForkRank()).Max());
-            }
-        }
-
         public static Dictionary<T, HashSet<PointSet2d>> FindContiguousSets<T>(IField2d<T> field)
         {
             Dictionary<T, HashSet<PointSet2d>> categoryToSets = new Dictionary<T, HashSet<PointSet2d>>();
@@ -101,7 +46,7 @@ namespace DemiurgeLib.Common
                             unaffiliated.Remove(p);
                             contiguousSet.Add(p);
 
-                            SetNeighbors(p, ref neighbors);
+                            Utils.SetNeighbors(p, ref neighbors);
                             for (int idx = 0; idx < neighbors.Length; idx++)
                             {
                                 p = neighbors[idx];
@@ -144,47 +89,8 @@ namespace DemiurgeLib.Common
             }
             else
             {
-                TreeNode<Point2d> root = new TreeNode<Point2d>(rootPt.Value);
-
-                PointSet2d alreadyIncluded = new PointSet2d();
-                alreadyIncluded.Add(root.value);
-
-                Point2d[] neighbors = new Point2d[8];
-
-                Queue<TreeNode<Point2d>> searchSpace = new Queue<TreeNode<Point2d>>();
-                searchSpace.Enqueue(root);
-
-                while (searchSpace.Count > 0)
-                {
-                    var node = searchSpace.Dequeue();
-
-                    SetNeighbors(node.value, ref neighbors);
-                    for (int idx = 0; idx < neighbors.Length; idx++)
-                    {
-                        Point2d pt = neighbors[idx];
-                        if (pointSet.Contains(pt) && !alreadyIncluded.Contains(pt))
-                        {
-                            searchSpace.Enqueue(new TreeNode<Point2d>(pt, node));
-                            alreadyIncluded.Add(pt);
-                        }
-                    }
-                }
-
-                return root;
+                return Utils.MakeBfsTree(rootPt.Value, pt => pointSet.Contains(pt));
             }
-        }
-
-        private static void SetNeighbors(Point2d center, ref Point2d[] neighbors)
-        {
-            // Set the eight neighbor positions, clockwise.
-            neighbors[0].x = center.x - 1; neighbors[0].y = center.y - 1;
-            neighbors[1].x = center.x + 0; neighbors[1].y = center.y - 1;
-            neighbors[2].x = center.x + 1; neighbors[2].y = center.y - 1;
-            neighbors[3].x = center.x + 1; neighbors[3].y = center.y + 0;
-            neighbors[4].x = center.x + 1; neighbors[4].y = center.y + 1;
-            neighbors[5].x = center.x + 0; neighbors[5].y = center.y + 1;
-            neighbors[6].x = center.x - 1; neighbors[6].y = center.y + 1;
-            neighbors[7].x = center.x - 1; neighbors[7].y = center.y + 0;
         }
     }
 }
