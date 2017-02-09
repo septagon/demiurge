@@ -132,9 +132,9 @@ namespace DemiurgeLib.Common
 
                 yield return node.value;
 
-                foreach (var child in node.children)
+                if (!prohibited.Contains(node))
                 {
-                    if (!prohibited.Contains(child))
+                    foreach (var child in node.children)
                     {
                         nodes.Enqueue(child);
                     }
