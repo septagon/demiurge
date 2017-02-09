@@ -1,5 +1,6 @@
 ﻿using DemiurgeLib;
 using DemiurgeLib.Common;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 
@@ -13,7 +14,7 @@ namespace DemiurgeConsole
 
         static void Main(string[] args)
         {
-            RunBlurryScenario();
+            RunWateryScenario();
         }
 
         private static void RunBlurryScenario()
@@ -34,13 +35,13 @@ namespace DemiurgeConsole
 
         private static void RunWateryScenario()
         {
-            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers.png");
+            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers_small.png");
             Field2d<float> field = new FieldFromBitmap(jranjana);
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
             HydrologicalField hydro = new HydrologicalField(tree);
             var sets = ContiguousSets.FindContiguousSets(hydro);
-            System.Collections.Generic.List<TreeNode<Point2d>> riverForest = new System.Collections.Generic.List<TreeNode<Point2d>>();
+            List<TreeNode<Point2d>> riverForest = new List<TreeNode<Point2d>>();
             foreach (var river in sets[HydrologicalField.LandType.Shore])
             {
                 riverForest.Add(ContiguousSets.MakeTreeFromContiguousSet(river, pt =>
@@ -59,13 +60,23 @@ namespace DemiurgeConsole
                 }));
             }
             DrainageField draino = new DrainageField(hydro, riverForest);
+            List<TreeNode<TreeNode<Point2d>>> riverSets = new List<TreeNode<TreeNode<Point2d>>>();
+            foreach (var river in riverForest)
+            {
+                riverSets.Add(ContiguousSets.GetMajorSubtrees(river, node => node.Depth() > 3));
+            }
 
-            using (var file = System.IO.File.OpenWrite("C:\\Users\\Justin Murray\\Desktop\\data.csv"))
+            using (var file = System.IO.File.OpenWrite("C:\\Users\\Justin Murray\\Desktop\\report.txt"))
             using (var writer = new System.IO.StreamWriter(file))
             {
-                riverForest.Select(river =>
+                riverSets.OrderByDescending(set => set.Size()).Select(riverSet =>
                 {
-                    writer.WriteLine(river.Size() + "," + river.Depth() + "," + river.ForkRank() + "," + river.MaxForkRank());
+                    writer.WriteLine("River of size " + riverSet.value.Size() + " with " + riverSet.Size() + " separate sub-rivers.");
+                    foreach (var river in riverSet.ToArray().OrderByDescending(t => t.Depth()))
+                    {
+                        writer.WriteLine("\tPart of river with " + river.value.Depth() + " depth and " + (river.Size() - 1) + " tributaries.");
+                    }
+                    writer.WriteLine();
                     return 0;
                 }).ToArray();
             }

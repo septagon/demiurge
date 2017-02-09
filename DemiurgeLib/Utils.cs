@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace DemiurgeLib.Common
 {
-    public class TreeNode<T>
+    public class TreeNode<T> : IEnumerable<TreeNode<T>>
     {
         public T value;
         public TreeNode<T> parent;
@@ -58,6 +59,30 @@ namespace DemiurgeLib.Common
         public int MaxForkRank()
         {
             return this.children.Count == 0 ? 0 : Math.Max(ForkRank(), this.children.Select(node => node.MaxForkRank()).Max());
+        }
+        
+        public IEnumerator<TreeNode<T>> GetEnumerator()
+        {
+            // Don't do this recursively, as doing so is ludicrously
+            // inefficient in terms of allocations.
+            Queue<TreeNode<T>> nodes = new Queue<TreeNode<T>>();
+            nodes.Enqueue(this);
+
+            while (nodes.Count > 0)
+            {
+                TreeNode<T> node = nodes.Dequeue();
+                yield return node;
+
+                foreach (var child in node.children)
+                {
+                    nodes.Enqueue(child);
+                }
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 

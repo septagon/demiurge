@@ -92,5 +92,31 @@ namespace DemiurgeLib.Common
                 return Utils.MakeBfsTree(rootPt.Value, pt => pointSet.Contains(pt));
             }
         }
+
+        public static TreeNode<TreeNode<Point2d>> GetMajorSubtrees(TreeNode<Point2d> root, Func<TreeNode<Point2d>, bool> isMajorSubtree)
+        {
+            var subtrees = root.children
+                .Where(isMajorSubtree)
+                .Select(child => GetMajorSubtrees(child, isMajorSubtree))
+                .OrderByDescending(tree => tree.Depth())
+                .ToList();
+
+            if (subtrees.Count == 0)
+            {
+                return new TreeNode<TreeNode<Point2d>>(root);
+            }
+            else
+            {
+                TreeNode<TreeNode<Point2d>> ret = new TreeNode<TreeNode<Point2d>>(root);
+                ret.children = subtrees[0].children;
+
+                for (int idx = 1; idx < subtrees.Count; idx++)
+                {
+                    subtrees[idx].SetParent(ret);
+                }
+
+                return ret;
+            }
+        }
     }
 }
