@@ -4,9 +4,9 @@ using System.Collections.Generic;
 
 namespace DemiurgeLib.Common
 {
-    public class ContiguousSets
+    public static class ContiguousSets
     {
-        public static Dictionary<T, HashSet<PointSet2d>> FindContiguousSets<T>(IField2d<T> field)
+        public static Dictionary<T, HashSet<PointSet2d>> FindContiguousSets<T>(this IField2d<T> field)
         {
             Dictionary<T, HashSet<PointSet2d>> categoryToSets = new Dictionary<T, HashSet<PointSet2d>>();
 
@@ -72,7 +72,7 @@ namespace DemiurgeLib.Common
             return categoryToSets;
         }
 
-        public static TreeNode<Point2d> MakeTreeFromContiguousSet(PointSet2d pointSet, Func<Point2d, bool> isRoot)
+        public static TreeNode<Point2d> MakeTreeFromContiguousSet(this PointSet2d pointSet, Func<Point2d, bool> isRoot)
         {
             Point2d? rootPt = null;
             foreach (var pt in pointSet)
@@ -93,12 +93,12 @@ namespace DemiurgeLib.Common
             }
         }
 
-        public static TreeNode<TreeNode<Point2d>> GetMajorSubtrees(TreeNode<Point2d> root, Func<TreeNode<Point2d>, bool> isMajorSubtree)
+        public static TreeNode<TreeNode<Point2d>> GetMajorSubtrees(this TreeNode<Point2d> root, Func<TreeNode<Point2d>, bool> isMajorSubtree)
         {
             var subtrees = root.children
                 .Where(isMajorSubtree)
                 .Select(child => GetMajorSubtrees(child, isMajorSubtree))
-                .OrderByDescending(tree => tree.Depth())
+                .OrderByDescending(tree => tree.value.Depth())
                 .ToList();
 
             if (subtrees.Count == 0)
@@ -116,6 +116,52 @@ namespace DemiurgeLib.Common
                 }
 
                 return ret;
+            }
+        }
+
+        public static IEnumerator<T> IteratePrimarySubtree<T>(this TreeNode<TreeNode<T>> root)
+        {
+            var prohibited = root.children.Select(child => child.value).ToList();
+
+            Queue<TreeNode<T>> nodes = new Queue<TreeNode<T>>();
+            nodes.Enqueue(root.value);
+
+            while (nodes.Count > 0)
+            {
+                TreeNode<T> node = nodes.Dequeue();
+
+                yield return node.value;
+
+                foreach (var child in node.children)
+                {
+                    if (!prohibited.Contains(child))
+                    {
+                        nodes.Enqueue(child);
+                    }
+                }
+            }
+        }
+
+        // This, I think, is a great evil.  Be very mindful of the performance of this, as I strongly
+        // suspect it will go allocation-crazy if given too much leeway to operate.
+        public static IEnumerator<IEnumerator<T>> IterateAllSubtrees<T>(this TreeNode<TreeNode<T>> root)
+        {
+            yield return root.IteratePrimarySubtree();
+
+            foreach (var child in root.children)
+            {
+                for (var iterator = child.IterateAllSubtrees(); iterator.MoveNext(); )
+                {
+                    yield return iterator.Current;
+                }
+            }
+        }
+
+        public static void Iterate<T>(this IEnumerator<T> enumerator, Action<T> action)
+        {
+            for (; enumerator.MoveNext();)
+            {
+                action(enumerator.Current);
             }
         }
     }

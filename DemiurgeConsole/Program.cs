@@ -40,11 +40,11 @@ namespace DemiurgeConsole
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
             HydrologicalField hydro = new HydrologicalField(tree);
-            var sets = ContiguousSets.FindContiguousSets(hydro);
+            var sets = hydro.FindContiguousSets();
             List<TreeNode<Point2d>> riverForest = new List<TreeNode<Point2d>>();
             foreach (var river in sets[HydrologicalField.LandType.Shore])
             {
-                riverForest.Add(ContiguousSets.MakeTreeFromContiguousSet(river, pt =>
+                riverForest.Add(river.MakeTreeFromContiguousSet(pt =>
                 {
                     // Warning: naive non-boundary-checking test-only implementation.  This will probably CRASH THE PROGRAM
                     // if a river happens to border the edge of the map.
@@ -63,7 +63,7 @@ namespace DemiurgeConsole
             List<TreeNode<TreeNode<Point2d>>> riverSets = new List<TreeNode<TreeNode<Point2d>>>();
             foreach (var river in riverForest)
             {
-                riverSets.Add(ContiguousSets.GetMajorSubtrees(river, node => node.Depth() > 3));
+                riverSets.Add(river.GetMajorSubtrees(node => node.Depth() > 15));
             }
 
             using (var file = System.IO.File.OpenWrite("C:\\Users\\Justin Murray\\Desktop\\report.txt"))
@@ -80,9 +80,6 @@ namespace DemiurgeConsole
                     return 0;
                 }).ToArray();
             }
-
-            // Contiguous shores
-            // BFS for river trees
 
             Bitmap bmp = new Bitmap(hydro.Width, hydro.Height);
             //for (int x = 0, y = 0; y < bmp.Height; y += ++x / bmp.Width, x %= bmp.Width)
@@ -112,6 +109,17 @@ namespace DemiurgeConsole
                         bmp.SetPixel(p.x, p.y, color);
                     }
                 }
+            }
+            foreach(var river in riverSets)
+            {
+                river.IterateAllSubtrees().Iterate(iterator =>
+                {
+                    Color color = Color.FromArgb(rand.Next(192), rand.Next(192), rand.Next(192));
+                    iterator.Iterate(p =>
+                    {
+                        bmp.SetPixel(p.x, p.y, color);
+                    });
+                });
             }
             foreach (var landmass in sets[HydrologicalField.LandType.Land])
             {
