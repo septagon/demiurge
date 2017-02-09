@@ -26,10 +26,15 @@
                 return this.values[y, x];
             }
 
-            protected set
+            set
             {
                 this.values[y, x] = value;
             }
+        }
+
+        public void Replicate(Field2d<T> other)
+        {
+            System.Array.Copy(other.values, this.values, this.values.Length);
         }
 
         virtual public int Width { get { return this.values.GetLength(1); } }

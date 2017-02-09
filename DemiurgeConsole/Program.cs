@@ -13,12 +13,28 @@ namespace DemiurgeConsole
 
         static void Main(string[] args)
         {
-            RunWateryScenario();
+            RunBlurryScenario();
+        }
+
+        private static void RunBlurryScenario()
+        {
+            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers_fullres.png");
+            Field2d<float> field = new FieldFromBitmap(jranjana);
+            BlurredField blurred = new BlurredField(field);
+
+            Bitmap output = new Bitmap(blurred.Width, blurred.Height);
+            for (int x = 0, y = 0; y < blurred.Height; y += ++x / blurred.Width, x %= blurred.Width)
+            {
+                float v = blurred[y, x];
+                int value = (int)(255f * v);
+                output.SetPixel(x, y, Color.FromArgb(value, value, value));
+            }
+            output.Save("C:\\Users\\Justin Murray\\Desktop\\blurred.png");
         }
 
         private static void RunWateryScenario()
         {
-            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers_small.png");
+            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers.png");
             Field2d<float> field = new FieldFromBitmap(jranjana);
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
