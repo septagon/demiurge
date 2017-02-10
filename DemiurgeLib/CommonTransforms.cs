@@ -24,4 +24,32 @@ namespace DemiurgeLib.Common
     {
         public ScaleTransform(IField2d<float> field, float scalar) : base(field, (val) => scalar * val) { }
     }
+
+    public class FunctionField<T> : IField2d<T>
+    {
+        public int Width { get; private set; }
+        public int Height { get; private set; }
+
+        public T this[int y, int x]
+        {
+            get
+            {
+                return this.function(x, y);
+            }
+        }
+
+        private Func<int, int, T> function;
+
+        public FunctionField(int width, int height, Func<int, int, T> function)
+        {
+            this.Width = width;
+            this.Height = height;
+            this.function = function;
+        }
+    }
+
+    public class ConstantField<T> : FunctionField<T>
+    {
+        public ConstantField(int width, int height, T value) : base(width, height, (x, y) => value) { }
+    }
 }

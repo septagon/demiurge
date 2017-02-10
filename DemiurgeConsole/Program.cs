@@ -1,5 +1,6 @@
 ﻿using DemiurgeLib;
 using DemiurgeLib.Common;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -14,7 +15,24 @@ namespace DemiurgeConsole
 
         static void Main(string[] args)
         {
-            RunWateryScenario();
+            //RunWateryScenario();
+            RunWaterHeightScenario();
+        }
+
+        public static void RunWaterHeightScenario()
+        {
+            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers_small.png");
+            Field2d<float> field = new FieldFromBitmap(jranjana);
+            BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
+            tree.RunDefaultTree();
+            HydrologicalField hydro = new HydrologicalField(tree);
+            
+            // This naive approach to creating the reference field has some flaws, particularly
+            // regarding the unseemly prominence of extremely short rivers (those that extend to
+            // sources very near the ocean).
+            BlurredField bf = new BlurredField(field);
+
+            WaterTableField wtf = new WaterTableField(bf, hydro);
         }
 
         private static void RunBlurryScenario()
@@ -115,8 +133,9 @@ namespace DemiurgeConsole
                 river.IterateAllSubtrees().Iterate(iterator =>
                 {
                     Color color = Color.FromArgb(rand.Next(192), rand.Next(192), rand.Next(192));
-                    iterator.Iterate(p =>
+                    iterator.Iterate(node =>
                     {
+                        Point2d p = node.value;
                         bmp.SetPixel(p.x, p.y, color);
                     });
                 });
@@ -166,6 +185,109 @@ namespace DemiurgeConsole
                     this[y, x] = bmp.GetPixel(x, y).GetBrightness();
                 }
             }
+        }
+
+        /// <summary>
+        /// TODO: This is a draft class as it doesn't quite behave properly for all scenarios.
+        /// Flaws include the dendency to produce singularly prominent soures of for extremely
+        /// short rivers, and to completely eliminate the heightmaps for landmasses that contain
+        /// few or no rivers.  Both of these are deal-breaking flaws and must be overcome before
+        /// this approach can be accepted as a method of generating base altitudes; that said,
+        /// other than those flaws, it's working splendidly!
+        /// </summary>
+        private class WaterTableField : Field2d<float>
+        {
+            public WaterTableField(
+                IField2d<float> baseField,
+                IField2d<HydrologicalField.LandType> hydroField)
+                : base(baseField.Width, baseField.Height)
+            {
+                var geographicFeatures = hydroField.FindContiguousSets();
+                var waterways = geographicFeatures.GetRiverSystems(hydroField).Where(ww => ww.Size() >= 10).ToList();
+                var riverSystems = waterways.GetRivers();
+                DrainageField draino = new DrainageField(hydroField, waterways);
+
+                foreach (var sea in geographicFeatures[HydrologicalField.LandType.Ocean])
+                {
+                    foreach (var p in sea)
+                    {
+                        this[p.y, p.x] = 0f;
+                    }
+                }
+
+                // Set the heights of all the river systems.
+                foreach (var river in riverSystems)
+                {
+                    Queue<TreeNode<TreeNode<Point2d>>> mouths = new Queue<TreeNode<TreeNode<Point2d>>>();
+                    mouths.Enqueue(river);
+
+                    Point2d p = river.value.value;
+                    this[p.y, p.x] = 0f;
+
+                    while (mouths.Count > 0)
+                    {
+                        var mouth = mouths.Dequeue();
+
+                        p = mouth.value.value;
+                        float mouthAlti = this[p.y, p.x];
+                        p = mouth.value.GetDeepestValue();
+                        float sourceAlti = baseField[p.y, p.x];
+
+                        float inc = (sourceAlti - mouthAlti) / mouth.value.Depth();
+
+                        mouth.IteratePrimarySubtree().Iterate(node =>
+                        {
+                            if (node.parent != null)
+                            {
+                                p = node.value;
+                                Point2d pt = node.parent.value;
+                                this[p.y, p.x] = this[pt.y, pt.x] + inc;
+                            }
+                        });
+
+                        foreach (var child in mouth.children)
+                        {
+                            mouths.Enqueue(child);
+                        }
+                    }
+                }
+
+                // At this point, all the water pixels have a defined height; set every
+                // land pixel to be the same height as its drain.
+                foreach (var land in geographicFeatures[HydrologicalField.LandType.Land])
+                {
+                    foreach (var p in land)
+                    {
+                        Point2d drain = draino[p.y, p.x];
+                        this[p.y, p.x] = this[drain.y, drain.x];
+                    }
+                }
+                
+                for (int idx = 0; idx < 20; idx++)
+                {
+                    BlurredField bf = new BlurredField(this, 1);
+                    foreach (var land in geographicFeatures[HydrologicalField.LandType.Land])
+                    {
+                        foreach (var p in land)
+                        {
+                            this[p.y, p.x] = bf[p.y, p.x];
+                        }
+                    }
+                }
+
+                OutputField(this, "C:\\Users\\Justin Murray\\Desktop\\heightmap.png");
+            }
+        }
+
+        private static void OutputField(IField2d<float> field, string filename)
+        {
+            Bitmap bmp = new Bitmap(field.Width, field.Height);
+            for (int x = 0, y = 0; y < field.Height; y += ++x / field.Width, x %= field.Width)
+            {
+                int value = Math.Min((int)(255 * field[y, x]), 255);
+                bmp.SetPixel(x, y, Color.FromArgb(value, value, value));
+            }
+            bmp.Save(filename);
         }
     }
 }

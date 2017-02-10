@@ -60,6 +60,30 @@ namespace DemiurgeLib.Common
         {
             return this.children.Count == 0 ? 0 : Math.Max(ForkRank(), this.children.Select(node => node.MaxForkRank()).Max());
         }
+
+        public T GetDeepestValue()
+        {
+            int depth = 0;
+            return GetDeepestValue(ref depth);
+        }
+
+        private T GetDeepestValue(ref int depth)
+        {
+            int curDepth = depth + 1;
+            T ret = this.value, val;
+
+            foreach (var child in this.children)
+            {
+                val = child.GetDeepestValue(ref curDepth);
+                if (curDepth > depth)
+                {
+                    depth = curDepth;
+                    ret = val;
+                }
+            }
+
+            return ret;
+        }
         
         public IEnumerator<TreeNode<T>> GetEnumerator()
         {

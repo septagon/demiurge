@@ -119,7 +119,7 @@ namespace DemiurgeLib.Common
             }
         }
 
-        public static IEnumerator<T> IteratePrimarySubtree<T>(this TreeNode<TreeNode<T>> root)
+        public static IEnumerator<TreeNode<T>> IteratePrimarySubtree<T>(this TreeNode<TreeNode<T>> root)
         {
             var prohibited = root.children.Select(child => child.value).ToList();
 
@@ -130,7 +130,7 @@ namespace DemiurgeLib.Common
             {
                 TreeNode<T> node = nodes.Dequeue();
 
-                yield return node.value;
+                yield return node;
 
                 if (!prohibited.Contains(node))
                 {
@@ -144,7 +144,7 @@ namespace DemiurgeLib.Common
 
         // This, I think, is a great evil.  Be very mindful of the performance of this, as I strongly
         // suspect it will go allocation-crazy if given too much leeway to operate.
-        public static IEnumerator<IEnumerator<T>> IterateAllSubtrees<T>(this TreeNode<TreeNode<T>> root)
+        public static IEnumerator<IEnumerator<TreeNode<T>>> IterateAllSubtrees<T>(this TreeNode<TreeNode<T>> root)
         {
             yield return root.IteratePrimarySubtree();
 
@@ -163,6 +163,41 @@ namespace DemiurgeLib.Common
             {
                 action(enumerator.Current);
             }
+        }
+
+        public static List<TreeNode<TreeNode<Point2d>>> GetRivers(this List<TreeNode<Point2d>> riverSystems)
+        {
+            List<TreeNode<TreeNode<Point2d>>> rivers = new List<TreeNode<TreeNode<Point2d>>>();
+            foreach (var river in riverSystems)
+            {
+                rivers.Add(river.GetMajorSubtrees(node => node.Depth() > 15));
+            }
+            return rivers;
+        }
+
+        public static List<TreeNode<Point2d>> GetRiverSystems(
+            this Dictionary<HydrologicalField.LandType, HashSet<PointSet2d>> geographicFeatures,
+            IField2d<HydrologicalField.LandType> hydroField)
+        {
+            List<TreeNode<Point2d>> riverForest = new List<TreeNode<Point2d>>();
+            foreach (var river in geographicFeatures[HydrologicalField.LandType.Shore])
+            {
+                riverForest.Add(river.MakeTreeFromContiguousSet(pt =>
+                {
+                    // Warning: naive non-boundary-checking test-only implementation.  This will probably CRASH THE PROGRAM
+                    // if a river happens to border the edge of the map.
+                    return
+                        hydroField[pt.y + 1, pt.x + 1] == HydrologicalField.LandType.Ocean ||
+                        hydroField[pt.y + 1, pt.x + 0] == HydrologicalField.LandType.Ocean ||
+                        hydroField[pt.y + 1, pt.x - 1] == HydrologicalField.LandType.Ocean ||
+                        hydroField[pt.y + 0, pt.x - 1] == HydrologicalField.LandType.Ocean ||
+                        hydroField[pt.y - 1, pt.x - 1] == HydrologicalField.LandType.Ocean ||
+                        hydroField[pt.y - 1, pt.x + 0] == HydrologicalField.LandType.Ocean ||
+                        hydroField[pt.y - 1, pt.x + 1] == HydrologicalField.LandType.Ocean ||
+                        hydroField[pt.y + 0, pt.x + 1] == HydrologicalField.LandType.Ocean;
+                }));
+            }
+            return riverForest;
         }
     }
 }
