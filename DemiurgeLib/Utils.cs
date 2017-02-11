@@ -84,6 +84,23 @@ namespace DemiurgeLib.Common
 
             return ret;
         }
+
+        public void Prune(int prunableSubtreeSize)
+        {
+            if (this.Size() < prunableSubtreeSize)
+            {
+                // Base case: if this subtree is too small, cut itself off from the tree.
+                this.SetParent(null);
+            }
+            else
+            {
+                List<TreeNode<T>> toPrune = this.children.ToList();
+                foreach (var child in toPrune)
+                {
+                    child.Prune(prunableSubtreeSize);
+                }
+            }
+        }
         
         public IEnumerator<TreeNode<T>> GetEnumerator()
         {

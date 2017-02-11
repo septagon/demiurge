@@ -226,5 +226,20 @@ namespace DemiurgeLib.Common
 
             return true;
         }
+        
+        public static void EnforceWaterwaysLegalForField(this List<TreeNode<Point2d>> waterways, Field2d<float> field, float minIncrement = 0f)
+        {
+            foreach (var waterway in waterways)
+            {
+                foreach (var node in waterway)
+                {
+                    if (node.parent != null &&
+                        field[node.value.y, node.value.x] < field[node.parent.value.y, node.parent.value.x])
+                    {
+                        field[node.value.y, node.value.x] = field[node.parent.value.y, node.parent.value.x] + minIncrement;
+                    }
+                }
+            }
+        }
     }
 }

@@ -209,8 +209,11 @@ namespace DemiurgeConsole
                 int minWaterwayLength = 5;
 
                 var geographicFeatures = hydroField.FindContiguousSets();
+
                 var waterways = geographicFeatures.GetRiverSystems(hydroField).Where(ww => ww.Depth() >= minWaterwayLength).ToList();
+
                 var riverSystems = waterways.GetRivers();
+
                 DrainageField draino = new DrainageField(hydroField, waterways);
 
                 foreach (var sea in geographicFeatures[HydrologicalField.LandType.Ocean])
@@ -288,14 +291,7 @@ namespace DemiurgeConsole
                     }
                 }
 
-                // Final blur pass for quality, unless it introduces an error.
-                BlurredField fbf = new BlurredField(this, 1);
-                bool isBlurLegal = waterways.AreWaterwaysLegalForField(fbf);
-                System.Diagnostics.Debug.Assert(isBlurLegal);
-                if (isBlurLegal)
-                {
-                    this.Replicate(fbf);
-                }
+                System.Diagnostics.Debug.Assert(waterways.AreWaterwaysLegalForField(this));
             }
         }
 
