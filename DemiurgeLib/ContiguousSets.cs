@@ -165,12 +165,12 @@ namespace DemiurgeLib.Common
             }
         }
 
-        public static List<TreeNode<TreeNode<Point2d>>> GetRivers(this List<TreeNode<Point2d>> riverSystems)
+        public static List<TreeNode<TreeNode<Point2d>>> GetRivers(this List<TreeNode<Point2d>> riverSystems, int subtreeDepth = 15)
         {
             List<TreeNode<TreeNode<Point2d>>> rivers = new List<TreeNode<TreeNode<Point2d>>>();
             foreach (var river in riverSystems)
             {
-                rivers.Add(river.GetMajorSubtrees(node => node.Depth() > 15));
+                rivers.Add(river.GetMajorSubtrees(node => node.Depth() >= subtreeDepth));
             }
             return rivers;
         }
@@ -198,6 +198,33 @@ namespace DemiurgeLib.Common
                 }));
             }
             return riverForest;
+        }
+
+        public static bool AreWaterwaysLegalForField(this List<TreeNode<Point2d>> waterways, IField2d<float> field)
+        {
+            foreach (var waterway in waterways)
+            { 
+                foreach (var node in waterway)
+                {
+                    if (node.value.x < 0 || node.value.x >= field.Width)
+                    {
+                        return false;
+                    }
+
+                    if (node.value.y < 0 || node.value.y >= field.Height)
+                    {
+                        return false;
+                    }
+
+                    if (node.parent != null && 
+                        field[node.value.y, node.value.x] < field[node.parent.value.y, node.parent.value.x])
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
     }
 }

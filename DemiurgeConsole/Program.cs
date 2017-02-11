@@ -21,7 +21,7 @@ namespace DemiurgeConsole
 
         public static void RunWaterHeightScenario()
         {
-            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers_small.png");
+            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers.png");
             Field2d<float> field = new FieldFromBitmap(jranjana);
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
@@ -30,9 +30,11 @@ namespace DemiurgeConsole
             // This naive approach to creating the reference field has some flaws, particularly
             // regarding the unseemly prominence of extremely short rivers (those that extend to
             // sources very near the ocean).
-            BlurredField bf = new BlurredField(field);
+            BlurredField bf = new BlurredField(new ScaleTransform(field, 0.8f));
 
             WaterTableField wtf = new WaterTableField(bf, hydro);
+
+            OutputField(wtf, "C:\\Users\\Justin Murray\\Desktop\\heightmap.png");
         }
 
         private static void RunBlurryScenario()
@@ -202,8 +204,12 @@ namespace DemiurgeConsole
                 IField2d<HydrologicalField.LandType> hydroField)
                 : base(baseField.Width, baseField.Height)
             {
+                float epsilon = 0.05f;
+                int blurIterations = 10;
+                int minWaterwayLength = 5;
+
                 var geographicFeatures = hydroField.FindContiguousSets();
-                var waterways = geographicFeatures.GetRiverSystems(hydroField).Where(ww => ww.Size() >= 10).ToList();
+                var waterways = geographicFeatures.GetRiverSystems(hydroField).Where(ww => ww.Depth() >= minWaterwayLength).ToList();
                 var riverSystems = waterways.GetRivers();
                 DrainageField draino = new DrainageField(hydroField, waterways);
 
@@ -261,16 +267,16 @@ namespace DemiurgeConsole
                         Point2d drain = draino[p.y, p.x];
                         if (hydroField[drain.y, drain.x] == HydrologicalField.LandType.Shore)
                         {
-                            this[p.y, p.x] = this[drain.y, drain.x];
+                            this[p.y, p.x] = this[drain.y, drain.x] + epsilon;
                         }
                         else
                         {
-                            this[p.y, p.x] = baseField[p.y, p.x];
+                            this[p.y, p.x] = baseField[p.y, p.x] + epsilon;
                         }
                     }
                 }
                 
-                for (int idx = 0; idx < 20; idx++)
+                for (int idx = 0; idx < blurIterations; idx++)
                 {
                     BlurredField bf = new BlurredField(this, 1);
                     foreach (var land in geographicFeatures[HydrologicalField.LandType.Land])
@@ -282,7 +288,14 @@ namespace DemiurgeConsole
                     }
                 }
 
-                OutputField(this, "C:\\Users\\Justin Murray\\Desktop\\heightmap.png");
+                // Final blur pass for quality, unless it introduces an error.
+                BlurredField fbf = new BlurredField(this, 1);
+                bool isBlurLegal = waterways.AreWaterwaysLegalForField(fbf);
+                System.Diagnostics.Debug.Assert(isBlurLegal);
+                if (isBlurLegal)
+                {
+                    this.Replicate(fbf);
+                }
             }
         }
 
