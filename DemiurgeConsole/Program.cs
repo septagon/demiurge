@@ -253,13 +253,20 @@ namespace DemiurgeConsole
                 }
 
                 // At this point, all the water pixels have a defined height; set every
-                // land pixel to be the same height as its drain.
+                // land pixel to be the same height as its drain iff it drains to a river.
                 foreach (var land in geographicFeatures[HydrologicalField.LandType.Land])
                 {
                     foreach (var p in land)
                     {
                         Point2d drain = draino[p.y, p.x];
-                        this[p.y, p.x] = this[drain.y, drain.x];
+                        if (hydroField[drain.y, drain.x] == HydrologicalField.LandType.Shore)
+                        {
+                            this[p.y, p.x] = this[drain.y, drain.x];
+                        }
+                        else
+                        {
+                            this[p.y, p.x] = baseField[p.y, p.x];
+                        }
                     }
                 }
                 
