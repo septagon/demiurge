@@ -35,6 +35,7 @@ namespace DemiurgeConsole
             WaterTableField wtf = new WaterTableField(bf, hydro);
 
             OutputField(wtf, "C:\\Users\\Justin Murray\\Desktop\\heightmap.png");
+            OutputAsColoredMap(wtf, "C:\\Users\\Justin Murray\\Desktop\\colored_map.png");
         }
 
         private static void RunBlurryScenario()
@@ -302,6 +303,30 @@ namespace DemiurgeConsole
             {
                 int value = Math.Min((int)(255 * field[y, x]), 255);
                 bmp.SetPixel(x, y, Color.FromArgb(value, value, value));
+            }
+            bmp.Save(filename);
+        }
+
+        private static void OutputAsColoredMap(IField2d<float> field, string filename)
+        {
+            Bitmap bmp = new Bitmap(field.Width, field.Height);
+            for (int x = 0, y = 0; y < field.Height; y += ++x / field.Width, x %= field.Width)
+            {
+                float value = field[y, x];
+                Color color;
+                if (value == 0f)
+                    color = Color.DarkBlue;
+                else if (value < 0.1f)
+                    color = Color.Beige;
+                else if (value < 0.4f)
+                    color = Color.LightGreen;
+                else if (value < 0.8f)
+                    color = Color.DarkGreen;
+                else if (value < 0.9f)
+                    color = Color.Gray;
+                else
+                    color = Color.White;
+                bmp.SetPixel(x, y, color);
             }
             bmp.Save(filename);
         }
