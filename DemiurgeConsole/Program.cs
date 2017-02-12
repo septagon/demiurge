@@ -241,7 +241,8 @@ namespace DemiurgeConsole
                         p = mouth.value.value;
                         float mouthAlti = this[p.y, p.x];
                         p = mouth.value.GetDeepestValue();
-                        float sourceAlti = baseField[p.y, p.x];
+                        // Prevent rivers from ever flowing uphill.
+                        float sourceAlti = Math.Max(mouthAlti, baseField[p.y, p.x]);
 
                         float inc = (sourceAlti - mouthAlti) / mouth.value.Depth();
 
