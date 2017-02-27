@@ -1,9 +1,11 @@
 ﻿using DemiurgeLib;
 using DemiurgeLib.Common;
+using DemiurgeLib.Noise;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Threading;
 
 namespace DemiurgeConsole
 {
@@ -12,35 +14,34 @@ namespace DemiurgeConsole
         const int Width = 1024;
         const int Height = 1024;
         const float Scale = 0.01f;
+        const int StackSize = 10485760;
 
         static void Main(string[] args)
         {
             //RunWateryScenario();
-            RunWaterHeightScenario();
+            new Thread(RunWaterHeightScenario, StackSize).Start();
         }
 
         public static void RunWaterHeightScenario()
         {
-            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers.png");
+            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\maps\\input\\rivers_ur.png");
             Field2d<float> field = new FieldFromBitmap(jranjana);
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
             HydrologicalField hydro = new HydrologicalField(tree);
-            
-            // This naive approach to creating the reference field has some flaws, particularly
-            // regarding the unseemly prominence of extremely short rivers (those that extend to
-            // sources very near the ocean).
-            BlurredField bf = new BlurredField(new ScaleTransform(field, 0.8f));
+
+            IField2d<float> bf = new FieldFromBitmap(new Bitmap("C:\\Users\\Justin Murray\\Desktop\\maps\\input\\base_heights_ur.png"));
+            bf = new NormalizedComposition2d<float>(bf, new ScaleTransform(new Simplex2D(bf.Width, bf.Height, 0.015f), 0.1f));
 
             WaterTableField wtf = new WaterTableField(bf, hydro);
 
-            OutputField(wtf, "C:\\Users\\Justin Murray\\Desktop\\heightmap.png");
-            OutputAsColoredMap(wtf, "C:\\Users\\Justin Murray\\Desktop\\colored_map.png");
+            OutputField(wtf, jranjana, "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\heightmap_ur.png");
+            OutputAsColoredMap(wtf, jranjana, "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\colored_map_ur.png");
         }
 
         private static void RunBlurryScenario()
         {
-            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers_fullres.png");
+            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\maps\\input\\rivers_hr.png");
             Field2d<float> field = new FieldFromBitmap(jranjana);
             BlurredField blurred = new BlurredField(field);
 
@@ -51,12 +52,12 @@ namespace DemiurgeConsole
                 int value = (int)(255f * v);
                 output.SetPixel(x, y, Color.FromArgb(value, value, value));
             }
-            output.Save("C:\\Users\\Justin Murray\\Desktop\\blurred.png");
+            output.Save("C:\\Users\\Justin Murray\\Desktop\\maps\\output\\blurred.png");
         }
 
         private static void RunWateryScenario()
         {
-            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\jranjana_landmasses_rivers_small.png");
+            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\maps\\input\\rivers_lr.png");
             Field2d<float> field = new FieldFromBitmap(jranjana);
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
@@ -87,7 +88,7 @@ namespace DemiurgeConsole
                 riverSets.Add(river.GetMajorSubtrees(node => node.Depth() > 15));
             }
 
-            using (var file = System.IO.File.OpenWrite("C:\\Users\\Justin Murray\\Desktop\\report.txt"))
+            using (var file = System.IO.File.OpenWrite("C:\\Users\\Justin Murray\\Desktop\\maps\\output\\report.txt"))
             using (var writer = new System.IO.StreamWriter(file))
             {
                 riverSets.OrderByDescending(set => set.Size()).Select(riverSet =>
@@ -153,7 +154,7 @@ namespace DemiurgeConsole
                     bmp.SetPixel(p.x, p.y, c);
                 }
             }
-            bmp.Save("C:\\Users\\Justin Murray\\Desktop\\tree.png");
+            bmp.Save("C:\\Users\\Justin Murray\\Desktop\\maps\\output\\tree.png");
         }
 
         private static void RunNoisyScenario()
@@ -176,7 +177,7 @@ namespace DemiurgeConsole
                 int intensity = (int)(255.0 * field[x, y]);
                 bmp.SetPixel(x, y, Color.FromArgb(intensity, intensity, intensity));
             }
-            bmp.Save("C:\\Users\\Justin Murray\\Desktop\\output.png");
+            bmp.Save("C:\\Users\\Justin Murray\\Desktop\\maps\\output\\noisy.png");
         }
 
         private class FieldFromBitmap : Field2d<float>
@@ -190,116 +191,8 @@ namespace DemiurgeConsole
             }
         }
 
-        /// <summary>
-        /// TODO: This is a draft class as it doesn't quite behave properly for all scenarios.
-        /// Flaws include the dendency to produce singularly prominent soures of for extremely
-        /// short rivers, and to completely eliminate the heightmaps for landmasses that contain
-        /// few or no rivers.  Both of these are deal-breaking flaws and must be overcome before
-        /// this approach can be accepted as a method of generating base altitudes; that said,
-        /// other than those flaws, it's working splendidly!
-        /// </summary>
-        private class WaterTableField : Field2d<float>
+        private static void OutputField(IField2d<float> field, Bitmap bmp, string filename)
         {
-            public WaterTableField(
-                IField2d<float> baseField,
-                IField2d<HydrologicalField.LandType> hydroField)
-                : base(baseField.Width, baseField.Height)
-            {
-                float epsilon = 0.05f;
-                int blurIterations = 10;
-                int minWaterwayLength = 5;
-
-                var geographicFeatures = hydroField.FindContiguousSets();
-
-                var waterways = geographicFeatures.GetRiverSystems(hydroField).Where(ww => ww.Depth() >= minWaterwayLength).ToList();
-
-                var riverSystems = waterways.GetRivers();
-
-                DrainageField draino = new DrainageField(hydroField, waterways);
-
-                foreach (var sea in geographicFeatures[HydrologicalField.LandType.Ocean])
-                {
-                    foreach (var p in sea)
-                    {
-                        this[p.y, p.x] = 0f;
-                    }
-                }
-
-                // Set the heights of all the river systems.
-                foreach (var river in riverSystems)
-                {
-                    Queue<TreeNode<TreeNode<Point2d>>> mouths = new Queue<TreeNode<TreeNode<Point2d>>>();
-                    mouths.Enqueue(river);
-
-                    Point2d p = river.value.value;
-                    this[p.y, p.x] = 0f;
-
-                    while (mouths.Count > 0)
-                    {
-                        var mouth = mouths.Dequeue();
-
-                        p = mouth.value.value;
-                        float mouthAlti = this[p.y, p.x];
-                        p = mouth.value.GetDeepestValue();
-                        // Prevent rivers from ever flowing uphill.
-                        float sourceAlti = Math.Max(mouthAlti, baseField[p.y, p.x]);
-
-                        float inc = (sourceAlti - mouthAlti) / mouth.value.Depth();
-
-                        mouth.IteratePrimarySubtree().Iterate(node =>
-                        {
-                            if (node.parent != null)
-                            {
-                                p = node.value;
-                                Point2d pt = node.parent.value;
-                                this[p.y, p.x] = this[pt.y, pt.x] + inc;
-                            }
-                        });
-
-                        foreach (var child in mouth.children)
-                        {
-                            mouths.Enqueue(child);
-                        }
-                    }
-                }
-
-                // At this point, all the water pixels have a defined height; set every
-                // land pixel to be the same height as its drain iff it drains to a river.
-                foreach (var land in geographicFeatures[HydrologicalField.LandType.Land])
-                {
-                    foreach (var p in land)
-                    {
-                        Point2d drain = draino[p.y, p.x];
-                        if (hydroField[drain.y, drain.x] == HydrologicalField.LandType.Shore)
-                        {
-                            this[p.y, p.x] = this[drain.y, drain.x] + epsilon;
-                        }
-                        else
-                        {
-                            this[p.y, p.x] = baseField[p.y, p.x] + epsilon;
-                        }
-                    }
-                }
-                
-                for (int idx = 0; idx < blurIterations; idx++)
-                {
-                    BlurredField bf = new BlurredField(this, 1);
-                    foreach (var land in geographicFeatures[HydrologicalField.LandType.Land])
-                    {
-                        foreach (var p in land)
-                        {
-                            this[p.y, p.x] = bf[p.y, p.x];
-                        }
-                    }
-                }
-
-                System.Diagnostics.Debug.Assert(waterways.AreWaterwaysLegalForField(this));
-            }
-        }
-
-        private static void OutputField(IField2d<float> field, string filename)
-        {
-            Bitmap bmp = new Bitmap(field.Width, field.Height);
             for (int x = 0, y = 0; y < field.Height; y += ++x / field.Width, x %= field.Width)
             {
                 int value = Math.Min((int)(255 * field[y, x]), 255);
@@ -308,9 +201,8 @@ namespace DemiurgeConsole
             bmp.Save(filename);
         }
 
-        private static void OutputAsColoredMap(IField2d<float> field, string filename)
+        private static void OutputAsColoredMap(IField2d<float> field, Bitmap bmp, string filename)
         {
-            Bitmap bmp = new Bitmap(field.Width, field.Height);
             for (int x = 0, y = 0; y < field.Height; y += ++x / field.Width, x %= field.Width)
             {
                 float value = field[y, x];
@@ -318,18 +210,29 @@ namespace DemiurgeConsole
                 if (value == 0f)
                     color = Color.DarkBlue;
                 else if (value < 0.1f)
-                    color = Color.Beige;
+                    color = Lerp(Color.Beige, Color.LightGreen, value / 0.1f);
                 else if (value < 0.4f)
-                    color = Color.LightGreen;
+                    color = Lerp(Color.LightGreen, Color.DarkGreen, (value - 0.1f) / 0.3f);
                 else if (value < 0.8f)
-                    color = Color.DarkGreen;
+                    color = Lerp(Color.DarkGreen, Color.Gray, (value - 0.4f) / 0.4f);
                 else if (value < 0.9f)
-                    color = Color.Gray;
+                    color = Lerp(Color.Gray, Color.White, (value - 0.8f) / 0.1f);
                 else
                     color = Color.White;
                 bmp.SetPixel(x, y, color);
             }
             bmp.Save(filename);
+        }
+
+        private static Color Lerp(Color from, Color to, float t)
+        {
+            t = Math.Max(0, Math.Min(t, 1f));
+            return Color.FromArgb(
+                (int)(from.A * (1f - t) + to.A * t),
+                (int)(from.R * (1f - t) + to.R * t),
+                (int)(from.G * (1f - t) + to.G * t),
+                (int)(from.B * (1f - t) + to.B * t)
+                );
         }
     }
 }
