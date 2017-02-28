@@ -42,6 +42,20 @@ namespace DemiurgeLib.Common
             }
         }
 
+        public int Count
+        {
+            get
+            {
+                int count = 0;
+                foreach (var value in this.set.Values)
+                {
+                    count += value.Count;
+                }
+
+                return count;
+            }
+        }
+
         public IEnumerator<Point2d> GetEnumerator()
         {
             foreach (var y in this.set.Keys)

@@ -93,7 +93,7 @@ namespace DemiurgeLib.Common
             }
         }
 
-        public static TreeNode<TreeNode<Point2d>> GetMajorSubtrees(this TreeNode<Point2d> root, Func<TreeNode<Point2d>, bool> isMajorSubtree)
+        public static TreeNode<TreeNode<T>> GetMajorSubtrees<T>(this TreeNode<T> root, Func<TreeNode<T>, bool> isMajorSubtree)
         {
             var subtrees = root.children
                 .Where(isMajorSubtree)
@@ -103,11 +103,11 @@ namespace DemiurgeLib.Common
 
             if (subtrees.Count == 0)
             {
-                return new TreeNode<TreeNode<Point2d>>(root);
+                return new TreeNode<TreeNode<T>>(root);
             }
             else
             {
-                TreeNode<TreeNode<Point2d>> ret = new TreeNode<TreeNode<Point2d>>(root);
+                TreeNode<TreeNode<T>> ret = new TreeNode<TreeNode<T>>(root);
                 ret.children = subtrees[0].children;
 
                 for (int idx = 1; idx < subtrees.Count; idx++)

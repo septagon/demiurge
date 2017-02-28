@@ -24,19 +24,32 @@ namespace DemiurgeConsole
 
         public static void RunWaterHeightScenario()
         {
-            Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\maps\\input\\rivers_ur.png");
+            string inputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\input\\";
+            string outputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\";
+
+            Bitmap jranjana = new Bitmap(inputPath + "rivers_ur.png");
             Field2d<float> field = new FieldFromBitmap(jranjana);
+
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
-            HydrologicalField hydro = new HydrologicalField(tree);
-
-            IField2d<float> bf = new FieldFromBitmap(new Bitmap("C:\\Users\\Justin Murray\\Desktop\\maps\\input\\base_heights_ur.png"));
+            OutputField(new Transformation2d<BrownianTree.Availability, float>(tree, val => val == BrownianTree.Availability.Available ? 1f : 0f),
+                jranjana, outputPath + "river_map_ur.png");
+            
+            IField2d<float> bf = new FieldFromBitmap(new Bitmap(inputPath + "base_heights_ur.png"));
             bf = new NormalizedComposition2d<float>(bf, new ScaleTransform(new Simplex2D(bf.Width, bf.Height, 0.015f), 0.1f));
+            OutputField(bf, jranjana, outputPath + "base_heights_ur.png");
 
+            HydrologicalField hydro = new HydrologicalField(tree);
             WaterTableField wtf = new WaterTableField(bf, hydro);
+            OutputAsTributaryMap(wtf.GeographicFeatures, wtf.RiverSystems, wtf.DrainageField, jranjana, outputPath + "tributary_map_ur.png");
 
-            OutputField(wtf, jranjana, "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\heightmap_ur.png");
-            OutputAsColoredMap(wtf, jranjana, "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\colored_map_ur.png");
+            OutputField(new NormalizedComposition2d<float>(new Transformation2d<float, float, float>(bf, wtf, (b, w) => Math.Abs(b - w))),
+                jranjana, outputPath + "error_map_ur.png");
+
+            SerializeMap(hydro, wtf, outputPath + "serialization.bin");
+
+            OutputField(wtf, jranjana, outputPath + "heightmap_ur.png");
+            OutputAsColoredMap(wtf, jranjana, outputPath + "colored_map_ur.png");
         }
 
         private static void RunBlurryScenario()
@@ -102,59 +115,8 @@ namespace DemiurgeConsole
                     return 0;
                 }).ToArray();
             }
-
-            Bitmap bmp = new Bitmap(hydro.Width, hydro.Height);
-            //for (int x = 0, y = 0; y < bmp.Height; y += ++x / bmp.Width, x %= bmp.Width)
-            //{
-            //    //bmp.SetPixel(x, y, tree[y, x] == BrownianTree.Availability.Available ? Color.White : Color.Black);
-            //    switch (hydro[y, x])
-            //    {
-            //        case HydrologicalField.LandType.Land:
-            //            bmp.SetPixel(x, y, Color.Wheat);
-            //            break;
-            //        case HydrologicalField.LandType.Shore:
-            //            bmp.SetPixel(x, y, Color.Teal);
-            //            break;
-            //        case HydrologicalField.LandType.Ocean:
-            //            bmp.SetPixel(x, y, Color.DarkBlue);
-            //            break;
-            //    }
-            //}
-            System.Random rand = new System.Random();
-            foreach (var hs in sets.Values)
-            {
-                foreach (var ps in hs)
-                {
-                    Color color = Color.FromArgb(rand.Next(192), rand.Next(192), rand.Next(192));
-                    foreach (Point2d p in ps)
-                    {
-                        bmp.SetPixel(p.x, p.y, color);
-                    }
-                }
-            }
-            foreach(var river in riverSets)
-            {
-                river.IterateAllSubtrees().Iterate(iterator =>
-                {
-                    Color color = Color.FromArgb(rand.Next(192), rand.Next(192), rand.Next(192));
-                    iterator.Iterate(node =>
-                    {
-                        Point2d p = node.value;
-                        bmp.SetPixel(p.x, p.y, color);
-                    });
-                });
-            }
-            foreach (var landmass in sets[HydrologicalField.LandType.Land])
-            {
-                foreach (Point2d p in landmass)
-                {
-                    Point2d drain = draino[p.y, p.x];
-                    Color c = bmp.GetPixel(drain.x, drain.y);
-                    c = Color.FromArgb(c.R + 64, c.G + 64, c.B + 64);
-                    bmp.SetPixel(p.x, p.y, c);
-                }
-            }
-            bmp.Save("C:\\Users\\Justin Murray\\Desktop\\maps\\output\\tree.png");
+            
+            OutputAsTributaryMap(sets, riverSets, draino, jranjana, "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\tree.png");
         }
 
         private static void RunNoisyScenario()
@@ -222,6 +184,169 @@ namespace DemiurgeConsole
                 bmp.SetPixel(x, y, color);
             }
             bmp.Save(filename);
+        }
+
+        private static void OutputAsTributaryMap(
+            Dictionary<HydrologicalField.LandType, HashSet<PointSet2d>> contiguousSets,
+            List<TreeNode<TreeNode<Point2d>>> riverSystems,
+            DrainageField drainageField,
+            Bitmap bmp,
+            string outputFile)
+        {
+            System.Random rand = new System.Random();
+            foreach (var hs in contiguousSets.Values)
+            {
+                foreach (var ps in hs)
+                {
+                    Color color = Color.FromArgb(rand.Next(192), rand.Next(192), rand.Next(192));
+                    foreach (Point2d p in ps)
+                    {
+                        bmp.SetPixel(p.x, p.y, color);
+                    }
+                }
+            }
+            foreach (var river in riverSystems)
+            {
+                river.IterateAllSubtrees().Iterate(iterator =>
+                {
+                    Color color = Color.FromArgb(rand.Next(192), rand.Next(192), rand.Next(192));
+                    iterator.Iterate(node =>
+                    {
+                        Point2d p = node.value;
+                        bmp.SetPixel(p.x, p.y, color);
+                    });
+                });
+            }
+            foreach (var landmass in contiguousSets[HydrologicalField.LandType.Land])
+            {
+                foreach (Point2d p in landmass)
+                {
+                    Point2d drain = drainageField[p.y, p.x];
+                    Color c = bmp.GetPixel(drain.x, drain.y);
+                    c = Color.FromArgb(c.R + 64, c.G + 64, c.B + 64);
+                    bmp.SetPixel(p.x, p.y, c);
+                }
+            }
+            bmp.Save(outputFile);
+        }
+
+        private static void SerializeMap(HydrologicalField hydro, WaterTableField wtf, string outputPath)
+        {
+            using (var binFile = System.IO.File.OpenWrite(outputPath + "serialized.bin"))
+            using (var binWriter = new System.IO.BinaryWriter(binFile))
+            using (var sumFile = System.IO.File.OpenWrite(outputPath + "summarized.txt"))
+            using (var sumWriter = new System.IO.StreamWriter(sumFile))
+            {
+                int[,] idAssociations = new int[wtf.Height, wtf.Width];
+                int id;
+
+                // Version
+                binWriter.Write(0);
+                sumWriter.WriteLine("Version 0");
+
+                // Impose order
+                var oceans = wtf.GeographicFeatures[HydrologicalField.LandType.Ocean].ToArray();
+                id = 0;
+                // Number of oceans
+                binWriter.Write(oceans.Length);
+                sumWriter.WriteLine("Total oceans: " + oceans.Length);
+                // For each ocean
+                foreach (var ocean in oceans)
+                {
+                    // Size
+                    binWriter.Write(ocean.Count);
+                    sumWriter.WriteLine("\tOcean " + id + " size: " + ocean.Count);
+
+                    foreach (Point2d pt in ocean)
+                    {
+                        idAssociations[pt.y, pt.x] = id;
+                    }
+
+                    id++;
+                }
+
+                // Impose order
+                var landmasses = wtf.GeographicFeatures[HydrologicalField.LandType.Land].ToArray();
+                id = 0;
+                // Number of landmasses
+                binWriter.Write(landmasses.Length);
+                sumWriter.WriteLine("Total landmasses: " + landmasses.Length);
+                // For each landmass
+                foreach (var landmass in landmasses)
+                {
+                    // Size
+                    binWriter.Write(landmass.Count);
+                    sumWriter.WriteLine("\tLandmass " + id + " size: " + landmass.Count);
+
+                    foreach (Point2d pt in landmass)
+                    {
+                        idAssociations[pt.y, pt.x] = id;
+                    }
+
+                    id++;
+                }
+
+                // Total number of rivers
+                binWriter.Write(wtf.RiverSystems.Sum(system => system.Size()));
+                sumWriter.WriteLine("Total rivers: " + wtf.RiverSystems.Sum(system => system.Size()));
+
+                // Prepare to output rivers.
+                Queue<Tuple<TreeNode<TreeNode<Point2d>>, int>> riversAndParentIds = new Queue<Tuple<TreeNode<TreeNode<Point2d>>, int>>();
+                id = 0;
+                foreach (var system in wtf.RiverSystems)
+                {
+                    riversAndParentIds.Enqueue(new Tuple<TreeNode<TreeNode<Point2d>>, int>(system, -1));
+                }
+
+                // For each river system
+                while (riversAndParentIds.Count > 0)
+                {
+                    var pair = riversAndParentIds.Dequeue();
+                    var riverSystem = pair.Item1;
+                    var parentId = pair.Item2;
+
+                    // Size
+                    binWriter.Write(riverSystem.value.Size());
+
+                    // Depth
+                    binWriter.Write(riverSystem.value.Depth());
+
+                    // Parent
+                    binWriter.Write(parentId);
+                    sumWriter.WriteLine("\tRiver " + id + " of size " + riverSystem.value.Size() + " and depth " + riverSystem.value.Depth() + " and parent " + parentId);
+
+                    foreach (var child in riverSystem.children)
+                    {
+                        riversAndParentIds.Enqueue(new Tuple<TreeNode<TreeNode<Point2d>>, int>(child, id));
+                    }
+
+                    riverSystem.IteratePrimarySubtree().Iterate(node => idAssociations[node.value.y, node.value.x] = id);
+
+                    id++;
+                }
+
+                // Map dimensions
+                binWriter.Write(wtf.Width);
+                binWriter.Write(wtf.Height);
+
+                // For each pixel
+                for (int x = 0, y = 0; y < wtf.Height; y += ++x / wtf.Width, x %= wtf.Width)
+                {
+                    // Water table height
+                    binWriter.Write(wtf[y, x]);
+
+                    // Hydrological type
+                    binWriter.Write((int)hydro[y, x]);
+
+                    // Feature id
+                    binWriter.Write(idAssociations[y, x]);
+
+                    // Drain
+                    var drain = wtf.DrainageField[y, x];
+                    binWriter.Write(drain.x);
+                    binWriter.Write(drain.y);
+                }
+            }
         }
 
         private static Color Lerp(Color from, Color to, float t)

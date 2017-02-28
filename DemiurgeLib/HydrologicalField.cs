@@ -7,9 +7,9 @@ namespace DemiurgeLib
     {
         public enum LandType
         {
-            Land,
-            Shore,
-            Ocean,
+            Land = 0,
+            Shore = 1,
+            Ocean = 2,
         }
 
         public HydrologicalField(IField2d<BrownianTree.Availability> field, int sensitivity = 7, float shoreThreshold = 0.5f)

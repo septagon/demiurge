@@ -67,17 +67,17 @@ namespace DemiurgeLib.Common
             return GetDeepestValue(ref depth);
         }
 
-        private T GetDeepestValue(ref int depth)
+        private T GetDeepestValue(ref int depthOfRet)
         {
-            int curDepth = depth + 1;
+            int depthOfVal = depthOfRet + 1;
             T ret = this.value, val;
 
             foreach (var child in this.children)
             {
-                val = child.GetDeepestValue(ref curDepth);
-                if (curDepth > depth)
+                val = child.GetDeepestValue(ref depthOfVal);
+                if (depthOfVal > depthOfRet)
                 {
-                    depth = curDepth;
+                    depthOfRet = depthOfVal;
                     ret = val;
                 }
             }
@@ -124,6 +124,25 @@ namespace DemiurgeLib.Common
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public interface ITraversalFunctor
+        {
+            void TraversalStarted(TreeNode<T> node);
+            void TraversalFinished();
+        }
+
+        public void Traverse<TFunctor>() where TFunctor : ITraversalFunctor, new()
+        {
+            TFunctor functor = new TFunctor();
+            functor.TraversalStarted(this);
+
+            foreach (var child in this.children)
+            {
+                child.Traverse<TFunctor>();
+            }
+
+            functor.TraversalFinished();
         }
     }
 
