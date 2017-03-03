@@ -13,15 +13,27 @@ namespace DemiurgeLib.Common
         public TreeNode<T> parent;
         public HashSet<TreeNode<T>> children;
 
+        private int size, depth, forkRank;
+        private bool sizeDirty, depthDirty, forkRankDirty;
+
         public TreeNode(T value, TreeNode<T> parent = null)
         {
             this.value = value;
-            this.parent = parent;
             this.children = new HashSet<TreeNode<T>>();
+
+            SetParent(parent);
+            MarkDirty();
+        }
+
+        protected void MarkDirty()
+        {
+            sizeDirty = true;
+            depthDirty = true;
+            forkRankDirty = true;
 
             if (this.parent != null)
             {
-                this.parent.children.Add(this);
+                this.parent.MarkDirty();
             }
         }
 
@@ -30,6 +42,7 @@ namespace DemiurgeLib.Common
             if (this.parent != null)
             {
                 this.parent.children.Remove(this);
+                this.parent.MarkDirty();
             }
 
             this.parent = newParent;
@@ -37,22 +50,39 @@ namespace DemiurgeLib.Common
             if (this.parent != null)
             {
                 this.parent.children.Add(this);
+                this.parent.MarkDirty();
             }
         }
 
         public int Size()
         {
-            return 1 + this.children.Sum(node => node.Size());
+            if (this.sizeDirty)
+            {
+                this.size = 1 + this.children.Sum(node => node.Size());
+                this.sizeDirty = false;
+            }
+            return this.size;
         }
 
         public int Depth()
         {
-            return this.children.Count == 0 ? 0 : 1 + this.children.Select(node => node.Depth()).Max();
+            if (this.depthDirty)
+            {
+                this.depth = this.children.Count == 0 ? 0 : 1 + this.children.Select(node => node.Depth()).Max();
+                this.depthDirty = false;
+            }
+            return this.depth;
         }
 
         public int ForkRank()
         {
-            return this.children.Count <= 1 ? 0 : this.children.Select(node => node.Depth()).Min();
+            if (this.forkRankDirty)
+            {
+                this.forkRank = this.children.Count <= 1 ? 0 : this.children.Select(node => node.Depth()).Min();
+                this.forkRankDirty = false;
+            }
+            return this.forkRank;
+            
         }
 
         // TODO: this is WILDLY inefficient without caching results.  Cache results or eliminate this method altogether.

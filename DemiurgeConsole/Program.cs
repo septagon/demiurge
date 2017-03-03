@@ -22,34 +22,55 @@ namespace DemiurgeConsole
             new Thread(RunWaterHeightScenario, StackSize).Start();
         }
 
+        private class WaterHeightScenarioArgs
+        {
+            public string inputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\input\\";
+            public string outputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\";
+            public long seed = 0;
+            public float baseNoiseScale = 0.015f;
+            public float baseNoiseScalar = 0.1f;
+            public int hydroSensitivity = 8;
+            public float hydroShoreThreshold = 0.5f;
+            public float wtfShore = 0.01f;
+            public int wtfIt = 10;
+            public int wtfLen = 5;
+            public float wtfGrade = 0f;
+            public float wtfCarveAdd = 0.3f;
+            public float wtfCarveMul = 1.3f;
+        }
+
         public static void RunWaterHeightScenario()
         {
-            string inputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\input\\";
-            string outputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\";
+            WaterHeightScenarioArgs args = new WaterHeightScenarioArgs();
+            args.seed = System.DateTime.UtcNow.Ticks;
+            Random random = new Random((int)args.seed);
 
-            Bitmap jranjana = new Bitmap(inputPath + "rivers_ur.png");
+            Bitmap jranjana = new Bitmap(args.inputPath + "rivers_ur_alt.png");
             Field2d<float> field = new FieldFromBitmap(jranjana);
 
-            BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
+            IField2d<float> bf = new FieldFromBitmap(new Bitmap(args.inputPath + "base_heights_ur_alt.png"));
+            bf = new NormalizedComposition2d<float>(bf, new ScaleTransform(new Simplex2D(bf.Width, bf.Height, args.baseNoiseScale, args.seed), args.baseNoiseScalar));
+            OutputField(bf, jranjana, args.outputPath + "base_heights_ur.png");
+
+            BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable, random);
             tree.RunDefaultTree();
             OutputField(new Transformation2d<BrownianTree.Availability, float>(tree, val => val == BrownianTree.Availability.Available ? 1f : 0f),
-                jranjana, outputPath + "river_map_ur.png");
-            
-            IField2d<float> bf = new FieldFromBitmap(new Bitmap(inputPath + "base_heights_ur.png"));
-            bf = new NormalizedComposition2d<float>(bf, new ScaleTransform(new Simplex2D(bf.Width, bf.Height, 0.015f), 0.1f));
-            OutputField(bf, jranjana, outputPath + "base_heights_ur.png");
+                jranjana, args.outputPath + "river_map_ur.png");
 
-            HydrologicalField hydro = new HydrologicalField(tree);
-            WaterTableField wtf = new WaterTableField(bf, hydro);
-            OutputAsTributaryMap(wtf.GeographicFeatures, wtf.RiverSystems, wtf.DrainageField, jranjana, outputPath + "tributary_map_ur.png");
+            HydrologicalField hydro = new HydrologicalField(tree, args.hydroSensitivity, args.hydroShoreThreshold);
+            WaterTableField wtf = new WaterTableField(bf, hydro, args.wtfShore, args.wtfIt, args.wtfLen, args.wtfGrade, () =>
+            {
+                return (float)(args.wtfCarveAdd + random.NextDouble() * args.wtfCarveMul);
+            });
+            OutputAsTributaryMap(wtf.GeographicFeatures, wtf.RiverSystems, wtf.DrainageField, jranjana, args.outputPath + "tributary_map_ur.png");
 
             OutputField(new NormalizedComposition2d<float>(new Transformation2d<float, float, float>(bf, wtf, (b, w) => Math.Abs(b - w))),
-                jranjana, outputPath + "error_map_ur.png");
+                jranjana, args.outputPath + "error_map_ur.png");
 
-            SerializeMap(hydro, wtf, outputPath + "serialization.bin");
+            SerializeMap(hydro, wtf, args.seed, args.outputPath + "serialization.bin");
 
-            OutputField(wtf, jranjana, outputPath + "heightmap_ur.png");
-            OutputAsColoredMap(wtf, jranjana, outputPath + "colored_map_ur.png");
+            OutputField(wtf, jranjana, args.outputPath + "heightmap_ur.png");
+            OutputAsColoredMap(wtf, wtf.RiverSystems, jranjana, args.outputPath + "colored_map_ur.png");
         }
 
         private static void RunBlurryScenario()
@@ -163,7 +184,7 @@ namespace DemiurgeConsole
             bmp.Save(filename);
         }
 
-        private static void OutputAsColoredMap(IField2d<float> field, Bitmap bmp, string filename)
+        private static void OutputAsColoredMap(IField2d<float> field, List<TreeNode<TreeNode<Point2d>>> riverSystems, Bitmap bmp, string filename)
         {
             for (int x = 0, y = 0; y < field.Height; y += ++x / field.Width, x %= field.Width)
             {
@@ -183,6 +204,19 @@ namespace DemiurgeConsole
                     color = Color.White;
                 bmp.SetPixel(x, y, color);
             }
+
+            foreach (var riverSystem in riverSystems)
+            {
+                float maxDepth = riverSystem.value.Depth();
+
+                foreach (var node in riverSystem.value)
+                {
+                    float t = node.Depth() / maxDepth;
+                    Point2d pt = node.value;
+                    bmp.SetPixel(pt.x, pt.y, Lerp(bmp.GetPixel(pt.x, pt.y), Color.Blue, t));
+                }
+            }
+
             bmp.Save(filename);
         }
 
@@ -230,7 +264,7 @@ namespace DemiurgeConsole
             bmp.Save(outputFile);
         }
 
-        private static void SerializeMap(HydrologicalField hydro, WaterTableField wtf, string outputPath)
+        private static void SerializeMap(HydrologicalField hydro, WaterTableField wtf, long seed, string outputPath)
         {
             using (var binFile = System.IO.File.OpenWrite(outputPath + "serialized.bin"))
             using (var binWriter = new System.IO.BinaryWriter(binFile))
@@ -241,8 +275,12 @@ namespace DemiurgeConsole
                 int id;
 
                 // Version
-                binWriter.Write(0);
-                sumWriter.WriteLine("Version 0");
+                binWriter.Write(1);
+                sumWriter.WriteLine("Version 1");
+
+                // Seed
+                binWriter.Write(seed);
+                sumWriter.WriteLine("Seed: " + seed);
 
                 // Impose order
                 var oceans = wtf.GeographicFeatures[HydrologicalField.LandType.Ocean].ToArray();
