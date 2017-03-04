@@ -50,6 +50,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -76,6 +77,8 @@
     <Compile Include="Point2d.cs" />
     <Compile Include="PointSet2d.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReResField.cs" />
+    <Compile Include="SubField.cs" />
     <Compile Include="Transformation2d.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="WaterTableField.cs" />
