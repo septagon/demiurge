@@ -19,7 +19,29 @@ namespace DemiurgeConsole
         static void Main(string[] args)
         {
             //RunWateryScenario();
-            new Thread(RunWaterHeightScenario, StackSize).Start();
+            //new Thread(RunWaterHeightScenario, StackSize).Start();
+            RunMountainousScenario(1024, 1024, 0.005f);
+        }
+
+        private static void RunMountainousScenario(int width, int height, float startingScale)
+        {
+            long seed = System.DateTime.Now.Ticks;
+
+            IField2d<float> mountainNoise0 = new MountainNoise(width, height, startingScale, seed, 0, 0);
+            IField2d<float> mountainNoise1 = new MountainNoise(width, height, startingScale, seed, 1024, 0);
+            IField2d<float> mountainNoise2 = new MountainNoise(width, height, startingScale, seed, 0, 1024);
+            IField2d<float> mountainNoise3 = new MountainNoise(width, height, startingScale, seed, 1024, 1024);
+
+            //IField2d<float> valleyNoise = new Transformation2d(mountainNoise, (x, y, val) =>
+            //{
+            //    float t = Math.Min(1f, Math.Abs(mountainNoise.Width / 2 - x) / 100f);
+            //    return val * t;
+            //});
+
+            OutputField(mountainNoise0, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m0.png");
+            OutputField(mountainNoise1, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m1.png");
+            OutputField(mountainNoise2, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m2.png");
+            OutputField(mountainNoise3, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m3.png");
         }
 
         private class WaterHeightScenarioArgs
