@@ -25,12 +25,35 @@ namespace DemiurgeConsole
 
         private static void RunMountainousScenario(int width, int height, float startingScale)
         {
+            string input = "C:\\Users\\Justin Murray\\Desktop\\maps\\input\\rivers.png";
+            Bitmap jranjana = new Bitmap(input);
+            //int needToMake = 0;
+            //for (int x = 0, y = 0; y < jranjana.Height / 24; y += ++x / (jranjana.Width / 24), x %= (jranjana.Width / 24))
+            //{
+            //    if (24 * x + 23 <= jranjana.Width && 24 * y + 23 <= jranjana.Height)
+            //    {
+            //        for (int j = 24 * y; j < 24 * y + 24; j++)
+            //        {
+            //            for (int i = 24 * x; i < 24 * x + 24; i++)
+            //            {
+            //                if (jranjana.GetPixel(i, j).GetBrightness() > 0.3f)
+            //                {
+            //                    needToMake++;
+            //                    i += 24;
+            //                    j += 24;
+            //                }
+            //            }
+            //        }
+            //    }
+            //}
+            //System.Console.WriteLine("Have to make " + needToMake);
+
             long seed = System.DateTime.Now.Ticks;
 
             IField2d<float> mountainNoise0 = new MountainNoise(width, height, startingScale, seed, 0, 0);
-            IField2d<float> mountainNoise1 = new MountainNoise(width, height, startingScale, seed, 1024, 0);
-            IField2d<float> mountainNoise2 = new MountainNoise(width, height, startingScale, seed, 0, 1024);
-            IField2d<float> mountainNoise3 = new MountainNoise(width, height, startingScale, seed, 1024, 1024);
+            //IField2d<float> mountainNoise1 = new MountainNoise(width, height, startingScale, seed, 1024, 0);
+            //IField2d<float> mountainNoise2 = new MountainNoise(width, height, startingScale, seed, 0, 1024);
+            //IField2d<float> mountainNoise3 = new MountainNoise(width, height, startingScale, seed, 1024, 1024);
 
             //IField2d<float> valleyNoise = new Transformation2d(mountainNoise, (x, y, val) =>
             //{
@@ -39,9 +62,11 @@ namespace DemiurgeConsole
             //});
 
             OutputField(mountainNoise0, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m0.png");
-            OutputField(mountainNoise1, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m1.png");
-            OutputField(mountainNoise2, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m2.png");
-            OutputField(mountainNoise3, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m3.png");
+            var scaled = new ReResField(new SubField<float>(new FieldFromBitmap(jranjana), new Rectangle(400, 300, 200, 200)), 5f);
+            OutputField(scaled, new Bitmap(scaled.Width, scaled.Height), "C:\\Users\\Justin Murray\\Desktop\\scaled.png");
+            //OutputField(mountainNoise1, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m1.png");
+            //OutputField(mountainNoise2, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m2.png");
+            //OutputField(mountainNoise3, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m3.png");
         }
 
         private class WaterHeightScenarioArgs
@@ -418,6 +443,40 @@ namespace DemiurgeConsole
                 (int)(from.G * (1f - t) + to.G * t),
                 (int)(from.B * (1f - t) + to.B * t)
                 );
+        }
+
+        private static Bitmap ScaleBitmap(Bitmap src, float scale)
+        {
+            Bitmap dst = new Bitmap((int)(src.Width * scale), (int)(src.Height * scale));
+
+            scale = (float)dst.Width / src.Width;
+
+            for (int x = 0, y = 0; y < dst.Height; y += ++x / dst.Width, x %= dst.Width)
+            {
+                float i = x / scale;
+                float j = y / scale;
+
+                int iMin = (int)Math.Floor(i);
+                int jMin = (int)Math.Floor(j);
+                int iMax = (int)Math.Min(iMin + 1, src.Width - 1);
+                int jMax = (int)Math.Min(jMin + 1, src.Height - 1);
+
+                Color ul = src.GetPixel(iMin, jMin);
+                Color ur = src.GetPixel(iMax, jMin);
+                Color ll = src.GetPixel(iMin, jMax);
+                Color lr = src.GetPixel(iMax, jMax);
+
+                float tx = 1f - (i - iMin);
+                float ty = 1f - (j - jMin);
+
+                int r = (int)Math.Min(255f, ((ul.R + ll.R) * tx + (ur.R + lr.R) * (1f - tx)) / 2f);
+                int g = (int)Math.Min(255f, ((ul.G + ll.G) * tx + (ur.G + lr.G) * (1f - tx)) / 2f);
+                int b = (int)Math.Min(255f, ((ul.B + ll.B) * tx + (ur.B + lr.B) * (1f - tx)) / 2f);
+
+                dst.SetPixel(x, y, Color.FromArgb(255, r, g, b));
+            }
+
+            return dst;
         }
     }
 }
