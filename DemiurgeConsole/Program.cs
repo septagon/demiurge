@@ -19,8 +19,8 @@ namespace DemiurgeConsole
         static void Main(string[] args)
         {
             //RunWateryScenario();
-            //new Thread(RunWaterHeightScenario, StackSize).Start();
-            RunMountainousScenario(1024, 1024, 0.005f);
+            new Thread(RunWaterHeightScenario, StackSize).Start();
+            //RunMountainousScenario(1024, 1024, 0.005f);
         }
 
         private static void RunMountainousScenario(int width, int height, float startingScale)
@@ -86,38 +86,44 @@ namespace DemiurgeConsole
             public float wtfCarveMul = 1.3f;
         }
 
-        public static void RunWaterHeightScenario()
+        private static void RunWaterHeightScenario()
+        {
+            //RunWaterHeightScenario("rivers_ur_alt.png", "base_heights_ur_alt.png");
+            RunWaterHeightScenario("rivers.png", "base_heights.png");
+        }
+
+        public static void RunWaterHeightScenario(string simpleWatersMapName, string simpleAltitudesMapName)
         {
             WaterHeightScenarioArgs args = new WaterHeightScenarioArgs();
             args.seed = System.DateTime.UtcNow.Ticks;
             Random random = new Random((int)args.seed);
 
-            Bitmap jranjana = new Bitmap(args.inputPath + "rivers_ur_alt.png");
+            Bitmap jranjana = new Bitmap(args.inputPath + simpleWatersMapName);
             Field2d<float> field = new FieldFromBitmap(jranjana);
 
-            IField2d<float> bf = new FieldFromBitmap(new Bitmap(args.inputPath + "base_heights_ur_alt.png"));
+            IField2d<float> bf = new FieldFromBitmap(new Bitmap(args.inputPath + simpleAltitudesMapName));
             bf = new NormalizedComposition2d<float>(bf, new ScaleTransform(new Simplex2D(bf.Width, bf.Height, args.baseNoiseScale, args.seed), args.baseNoiseScalar));
-            OutputField(bf, jranjana, args.outputPath + "base_heights_ur.png");
+            OutputField(bf, jranjana, args.outputPath + "basis.png");
 
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable, random);
             tree.RunDefaultTree();
             OutputField(new Transformation2d<BrownianTree.Availability, float>(tree, val => val == BrownianTree.Availability.Available ? 1f : 0f),
-                jranjana, args.outputPath + "river_map_ur.png");
+                jranjana, args.outputPath + "rivers.png");
 
             HydrologicalField hydro = new HydrologicalField(tree, args.hydroSensitivity, args.hydroShoreThreshold);
             WaterTableField wtf = new WaterTableField(bf, hydro, args.wtfShore, args.wtfIt, args.wtfLen, args.wtfGrade, () =>
             {
                 return (float)(args.wtfCarveAdd + random.NextDouble() * args.wtfCarveMul);
             });
-            OutputAsTributaryMap(wtf.GeographicFeatures, wtf.RiverSystems, wtf.DrainageField, jranjana, args.outputPath + "tributary_map_ur.png");
+            OutputAsTributaryMap(wtf.GeographicFeatures, wtf.RiverSystems, wtf.DrainageField, jranjana, args.outputPath + "tributaries.png");
 
             OutputField(new NormalizedComposition2d<float>(new Transformation2d<float, float, float>(bf, wtf, (b, w) => Math.Abs(b - w))),
-                jranjana, args.outputPath + "error_map_ur.png");
+                jranjana, args.outputPath + "errors.png");
 
             SerializeMap(hydro, wtf, args.seed, args.outputPath + "serialization.bin");
 
-            OutputField(wtf, jranjana, args.outputPath + "heightmap_ur.png");
-            OutputAsColoredMap(wtf, wtf.RiverSystems, jranjana, args.outputPath + "colored_map_ur.png");
+            OutputField(wtf, jranjana, args.outputPath + "heightmap.png");
+            OutputAsColoredMap(wtf, wtf.RiverSystems, jranjana, args.outputPath + "colored_map.png");
         }
 
         private static void RunBlurryScenario()
