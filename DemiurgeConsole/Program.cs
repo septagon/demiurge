@@ -19,8 +19,9 @@ namespace DemiurgeConsole
         static void Main(string[] args)
         {
             //RunWateryScenario();
-            new Thread(RunWaterHeightScenario, StackSize).Start();
+            //new Thread(RunWaterHeightScenario, StackSize).Start();
             //RunMountainousScenario(1024, 1024, 0.005f);
+            new Thread(RunPopulationScenario, StackSize).Start();
         }
 
         private static void RunMountainousScenario(int width, int height, float startingScale)
@@ -69,7 +70,7 @@ namespace DemiurgeConsole
             //OutputField(mountainNoise3, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m3.png");
         }
 
-        private class WaterHeightScenarioArgs
+        private class WaterTableArgs
         {
             public string inputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\input\\";
             public string outputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\";
@@ -86,15 +87,23 @@ namespace DemiurgeConsole
             public float wtfCarveMul = 1.3f;
         }
 
+        private static void RunPopulationScenario()
+        {
+            WaterTableArgs args = new WaterTableArgs();
+            Bitmap bmp = new Bitmap(args.inputPath + "rivers.png");
+            var wtf = GenerateWaters(bmp);
+            OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
+        }
+
         private static void RunWaterHeightScenario()
         {
             //RunWaterHeightScenario("rivers_ur_alt.png", "base_heights_ur_alt.png");
             RunWaterHeightScenario("rivers.png", "base_heights.png");
         }
 
-        public static void RunWaterHeightScenario(string simpleWatersMapName, string simpleAltitudesMapName)
+        private static void RunWaterHeightScenario(string simpleWatersMapName, string simpleAltitudesMapName)
         {
-            WaterHeightScenarioArgs args = new WaterHeightScenarioArgs();
+            WaterTableArgs args = new WaterTableArgs();
             args.seed = System.DateTime.UtcNow.Ticks;
             Random random = new Random((int)args.seed);
 
@@ -315,6 +324,28 @@ namespace DemiurgeConsole
                 }
             }
             bmp.Save(outputFile);
+        }
+
+        private static WaterTableField GenerateWaters(Bitmap bmp, IField2d<float> baseField = null, WaterTableArgs args = null, Random random = null)
+        {
+            args = args ?? new WaterTableArgs() { seed = System.DateTime.UtcNow.Ticks };
+            random = random ?? new Random((int)args.seed);
+            baseField = baseField ?? new Simplex2D(bmp.Width, bmp.Height, args.baseNoiseScale, args.seed);
+
+            Field2d<float> field = new FieldFromBitmap(bmp);
+            
+            baseField = new NormalizedComposition2d<float>(baseField, new ScaleTransform(new Simplex2D(baseField.Width, baseField.Height, args.baseNoiseScale, args.seed), args.baseNoiseScalar));
+
+            BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable, random);
+            tree.RunDefaultTree();
+
+            HydrologicalField hydro = new HydrologicalField(tree, args.hydroSensitivity, args.hydroShoreThreshold);
+            WaterTableField wtf = new WaterTableField(baseField, hydro, args.wtfShore, args.wtfIt, args.wtfLen, args.wtfGrade, () =>
+            {
+                return (float)(args.wtfCarveAdd + random.NextDouble() * args.wtfCarveMul);
+            });
+
+            return wtf;
         }
 
         private static void SerializeMap(HydrologicalField hydro, WaterTableField wtf, long seed, string outputPath)
