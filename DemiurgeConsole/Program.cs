@@ -94,36 +94,14 @@ namespace DemiurgeConsole
             var wtf = GenerateWaters(bmp);
             OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
 
-            //IField2d<float> rainfall = new ConstantField<float>(wtf.Width, wtf.Height, 1f);
             IField2d<float> rainfall = new FieldFromBitmap(new Bitmap(args.inputPath + "rainfall.png"));
 
             IField2d<float> wateriness = GetWaterinessMap(wtf, rainfall);
-            
             OutputField(new NormalizedComposition2d<float>(wateriness), bmp, args.outputPath + "wateriness.png");
 
-            IField2d<float> noise = new BlurredField(new MountainNoise(wtf.Width, wtf.Height, 0.1f), 3f);
-            Transformation2d<float, float, float> combination = new Transformation2d<float, float, float>(wateriness, noise, (w, n) => w + 0.05f * n);
-
-            Field2d<float> output = new Field2d<float>(new ConstantField<float>(combination.Width, combination.Height, 0f));
-            for (int y = 1; y < output.Height - 1; y++)
-            {
-                for (int x = 1; x < output.Width - 1; x++)
-                {
-                    if (wtf[y, x] > 0f &&
-                        combination[y - 1, x - 1] < combination[y, x] &&
-                        combination[y - 1, x + 0] < combination[y, x] &&
-                        combination[y - 1, x + 1] < combination[y, x] &&
-                        combination[y + 0, x + 1] < combination[y, x] &&
-                        combination[y + 1, x + 1] < combination[y, x] &&
-                        combination[y + 1, x + 0] < combination[y, x] &&
-                        combination[y + 1, x - 1] < combination[y, x] &&
-                        combination[y + 0, x - 1] < combination[y, x])
-                    {
-                        output[y, x] = combination[y, x];
-                    }
-                }
-            }
-            OutputField(new NormalizedComposition2d<float>(output), bmp, args.outputPath + "settlements.png");
+            Field2d<float> settlementMap;
+            GetSettlementLocations(wtf, wateriness, out settlementMap);
+            OutputField(new NormalizedComposition2d<float>(settlementMap), bmp, args.outputPath + "settlements.png");
         }
 
         private static IField2d<float> GetWaterinessMap(WaterTableField wtf, IField2d<float> rainfall, float waterPortability = 5f, float waterinessAttenuation = 20f)
@@ -155,6 +133,39 @@ namespace DemiurgeConsole
             IField2d<float> waterinessUnblurred = new FunctionField<float>(waterFlow.Width, waterFlow.Height,
                 (x, y) => 1f / (1f + (float)Math.Pow(Math.E, -waterinessAttenuation * waterFlow[y, x] / maxValue)));
             return new BlurredField(waterinessUnblurred, waterPortability);
+        }
+
+        private static List<Point2d> GetSettlementLocations(WaterTableField wtf, IField2d<float> wateriness, out Field2d<float> debugOutput,
+            float noiseScale = 0.1f, float noiseBlur = 3f, float noiseContribution = 0.15f)
+        {
+            IField2d<float> noise = new BlurredField(new MountainNoise(wtf.Width, wtf.Height, noiseScale), noiseBlur);
+            Transformation2d<float, float, float> combination = new Transformation2d<float, float, float>(wateriness, noise, (w, n) => w + noiseContribution * n);
+
+            List<Point2d> locations = new List<Point2d>();
+
+            debugOutput = new Field2d<float>(new ConstantField<float>(combination.Width, combination.Height, 0f));
+            for (int y = 1; y < combination.Height - 1; y++)
+            {
+                for (int x = 1; x < combination.Width - 1; x++)
+                {
+                    if (wtf[y, x] > 0f &&
+                        combination[y - 1, x - 1] < combination[y, x] &&
+                        combination[y - 1, x + 0] < combination[y, x] &&
+                        combination[y - 1, x + 1] < combination[y, x] &&
+                        combination[y + 0, x + 1] < combination[y, x] &&
+                        combination[y + 1, x + 1] < combination[y, x] &&
+                        combination[y + 1, x + 0] < combination[y, x] &&
+                        combination[y + 1, x - 1] < combination[y, x] &&
+                        combination[y + 0, x - 1] < combination[y, x])
+                    {
+                        locations.Add(new Point2d(x, y));
+
+                        debugOutput[y, x] = combination[y, x];
+                    }
+                }
+            }
+
+            return locations;
         }
 
         private static void RunWaterHeightScenario()
