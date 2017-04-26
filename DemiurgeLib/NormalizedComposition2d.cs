@@ -82,7 +82,8 @@ namespace DemiurgeLib
         {
             get
             {
-                return Divide(Subtract(base[y, x], minimum), this.maximum);
+                System.Diagnostics.Debug.Assert(!Equals(this.minimum, this.maximum));
+                return Divide(Subtract(base[y, x], this.minimum), Subtract(this.maximum, this.minimum));
             }
         }
     }

@@ -93,6 +93,68 @@ namespace DemiurgeConsole
             Bitmap bmp = new Bitmap(args.inputPath + "rivers.png");
             var wtf = GenerateWaters(bmp);
             OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
+
+            //IField2d<float> rainfall = new ConstantField<float>(wtf.Width, wtf.Height, 1f);
+            IField2d<float> rainfall = new FieldFromBitmap(new Bitmap(args.inputPath + "rainfall.png"));
+
+            IField2d<float> wateriness = GetWaterinessMap(wtf, rainfall);
+            
+            OutputField(new NormalizedComposition2d<float>(wateriness), bmp, args.outputPath + "wateriness.png");
+
+            IField2d<float> noise = new BlurredField(new MountainNoise(wtf.Width, wtf.Height, 0.1f), 3f);
+            Transformation2d<float, float, float> combination = new Transformation2d<float, float, float>(wateriness, noise, (w, n) => w + 0.05f * n);
+
+            Field2d<float> output = new Field2d<float>(new ConstantField<float>(combination.Width, combination.Height, 0f));
+            for (int y = 1; y < output.Height - 1; y++)
+            {
+                for (int x = 1; x < output.Width - 1; x++)
+                {
+                    if (wtf[y, x] > 0f &&
+                        combination[y - 1, x - 1] < combination[y, x] &&
+                        combination[y - 1, x + 0] < combination[y, x] &&
+                        combination[y - 1, x + 1] < combination[y, x] &&
+                        combination[y + 0, x + 1] < combination[y, x] &&
+                        combination[y + 1, x + 1] < combination[y, x] &&
+                        combination[y + 1, x + 0] < combination[y, x] &&
+                        combination[y + 1, x - 1] < combination[y, x] &&
+                        combination[y + 0, x - 1] < combination[y, x])
+                    {
+                        output[y, x] = combination[y, x];
+                    }
+                }
+            }
+            OutputField(new NormalizedComposition2d<float>(output), bmp, args.outputPath + "settlements.png");
+        }
+
+        private static IField2d<float> GetWaterinessMap(WaterTableField wtf, IField2d<float> rainfall, float waterPortability = 5f, float waterinessAttenuation = 20f)
+        {
+            // Generate "water flow" map using the rainfall map and the water table map, characterizing
+            // how much water is in an area based on upstream.  Note that, in the simplistic case of 
+            // identical universal rainfall, this is just a scalar on depth; this whole shindig is
+            // intended to support variable rainfall, as characterized by the rainfall map.
+            Field2d<float> waterFlow = new Field2d<float>(rainfall);
+            float maxValue = float.MinValue;
+            foreach (TreeNode<Point2d> waterway in wtf.Waterways)
+            {
+                List<TreeNode<Point2d>> flattenedReversedRiverTree = new List<TreeNode<Point2d>>(waterway);
+                flattenedReversedRiverTree.Reverse();
+
+                foreach (var node in flattenedReversedRiverTree)
+                {
+                    if (node.parent != null)
+                    {
+                        Point2d cur = node.value;
+                        Point2d par = node.parent.value;
+
+                        waterFlow[par.y, par.x] += waterFlow[cur.y, cur.x];
+                    }
+
+                    maxValue = Math.Max(maxValue, waterFlow[node.value.y, node.value.x]);
+                }
+            }
+            IField2d<float> waterinessUnblurred = new FunctionField<float>(waterFlow.Width, waterFlow.Height,
+                (x, y) => 1f / (1f + (float)Math.Pow(Math.E, -waterinessAttenuation * waterFlow[y, x] / maxValue)));
+            return new BlurredField(waterinessUnblurred, waterPortability);
         }
 
         private static void RunWaterHeightScenario()
