@@ -75,6 +75,10 @@
       <Project>{4b60d569-6457-4436-a44d-11f8e2f4b22b}</Project>
       <Name>DemiurgeLib</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Extern\Triangle.NET\Triangle\Triangle.csproj">
+      <Project>{f7907a0a-b75f-400b-9e78-bfad00db4d6b}</Project>
+      <Name>Triangle</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

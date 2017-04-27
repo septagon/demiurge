@@ -91,7 +91,8 @@ namespace DemiurgeConsole
         {
             WaterTableArgs args = new WaterTableArgs();
             Bitmap bmp = new Bitmap(args.inputPath + "rivers.png");
-            var wtf = GenerateWaters(bmp);
+            IField2d<float> baseMap = new FieldFromBitmap(new Bitmap(args.inputPath + "base_heights.png"));
+            var wtf = GenerateWaters(bmp, baseMap);
             OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
 
             IField2d<float> rainfall = new FieldFromBitmap(new Bitmap(args.inputPath + "rainfall.png"));
@@ -100,8 +101,37 @@ namespace DemiurgeConsole
             OutputField(new NormalizedComposition2d<float>(wateriness), bmp, args.outputPath + "wateriness.png");
 
             Field2d<float> settlementMap;
-            GetSettlementLocations(wtf, wateriness, out settlementMap);
+            var locations = GetSettlementLocations(wtf, wateriness, out settlementMap);
             OutputField(new NormalizedComposition2d<float>(settlementMap), bmp, args.outputPath + "settlements.png");
+
+            TriangleNet.Geometry.InputGeometry pointSet = new TriangleNet.Geometry.InputGeometry();
+            foreach (var loc in locations)
+            {
+                pointSet.AddPoint(loc.x, loc.y);
+            }
+            TriangleNet.Mesh mesh = new TriangleNet.Mesh();
+            mesh.Triangulate(pointSet);
+
+            Field2d<float> meshField = new Field2d<float>(settlementMap);
+            foreach (var e in mesh.Edges)
+            {
+                var v0 = mesh.GetVertex(e.P0);
+                var v1 = mesh.GetVertex(e.P1);
+                
+                float distance = (float)Math.Sqrt(Math.Pow(v0.X - v1.X, 2) + Math.Pow(v0.Y - v1.Y, 2));
+
+                for (float t = 0f; t <= 1f; t += 0.5f / distance)
+                {
+                    int x = (int)Math.Round((1f - t) * v0.X + t * v1.X);
+                    int y = (int)Math.Round((1f - t) * v0.Y + t * v1.Y);
+
+                    meshField[y, x] = 0.5f;
+                }
+
+                meshField[(int)v0.Y, (int)v0.X] = 1f;
+                meshField[(int)v1.Y, (int)v1.X] = 1f;
+            }
+            OutputField(meshField, bmp, args.outputPath + "mesh.png");
         }
 
         private static IField2d<float> GetWaterinessMap(WaterTableField wtf, IField2d<float> rainfall, float waterPortability = 5f, float waterinessAttenuation = 20f)
