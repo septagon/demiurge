@@ -6,31 +6,45 @@ using System.Threading.Tasks;
 
 namespace DemiurgeLib.Common
 {
-    public class ReResField : Field2d<float>
+    public class ReResField : IField2d<float>
     {
-        public ReResField(IField2d<float> src, float scale) : base((int)(src.Width * scale), (int)(src.Height * scale))
-        {
-            scale = (float)this.Width / src.Width;
+        private IField2d<float> source;
+        private float scale;
+        public int Height { get; private set; }
+        public int Width { get; private set; }
 
-            for (int x = 0, y = 0; y < this.Height; y += ++x / this.Width, x %= this.Width)
+        public ReResField(IField2d<float> src, float scale)
+        {
+            this.Width = (int)(src.Width * scale);
+            this.Height = (int)(src.Height * scale);
+            this.scale = (float)this.Width / src.Width;
+            this.source = src;
+        }
+
+        /// <summary>
+        /// Uses a rather naive algorithm, particularly for downres.  Lazy evaluation is memory optimal.
+        /// </summary>
+        public float this[int y, int x]
+        {
+            get
             {
-                float i = x / scale;
-                float j = y / scale;
+                float i = x / this.scale;
+                float j = y / this.scale;
 
                 int iMin = (int)Math.Floor(i);
                 int jMin = (int)Math.Floor(j);
-                int iMax = (int)Math.Min(iMin + 1, src.Width - 1);
-                int jMax = (int)Math.Min(jMin + 1, src.Height - 1);
+                int iMax = (int)Math.Min(iMin + 1, this.source.Width - 1);
+                int jMax = (int)Math.Min(jMin + 1, this.source.Height - 1);
 
-                float ul = src[jMin, iMin];
-                float ur = src[jMin, iMax];
-                float ll = src[jMax, iMin];
-                float lr = src[jMax, iMax];
+                float ul = this.source[jMin, iMin];
+                float ur = this.source[jMin, iMax];
+                float ll = this.source[jMax, iMin];
+                float lr = this.source[jMax, iMax];
 
                 float tx = 1f - (i - iMin);
                 float ty = 1f - (j - jMin);
 
-                this[y, x] = ((ul + ll) * tx + (ur + lr) * (1f - tx)) / 2f;
+                return ((ul + ll) * tx + (ur + lr) * (1f - tx)) / 2f;
             }
         }
     }

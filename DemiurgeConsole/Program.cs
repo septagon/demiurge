@@ -91,18 +91,22 @@ namespace DemiurgeConsole
         {
             WaterTableArgs args = new WaterTableArgs();
             Bitmap bmp = new Bitmap(args.inputPath + "rivers.png");
+
             IField2d<float> baseMap = new FieldFromBitmap(new Bitmap(args.inputPath + "base_heights.png"));
+            baseMap = new ReResField(baseMap, (float)bmp.Width / baseMap.Width);
+
             var wtf = GenerateWaters(bmp, baseMap);
             OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
 
             IField2d<float> rainfall = new FieldFromBitmap(new Bitmap(args.inputPath + "rainfall.png"));
+            rainfall = new ReResField(rainfall, (float)wtf.Width / rainfall.Width);
 
             IField2d<float> wateriness = GetWaterinessMap(wtf, rainfall);
             OutputField(new NormalizedComposition2d<float>(wateriness), bmp, args.outputPath + "wateriness.png");
             
             var locations = GetSettlementLocations(wtf, wateriness);
             SparseField2d<float> settlementMap = new SparseField2d<float>(wtf.Width, wtf.Height, 0f);
-            foreach (var loc in locations) settlementMap.Add(loc, 1f);
+            foreach (var loc in locations) settlementMap.Add(loc, wateriness[loc.y, loc.x]);
             OutputField(settlementMap, bmp, args.outputPath + "settlements.png");
 
             TriangleNet.Geometry.InputGeometry pointSet = new TriangleNet.Geometry.InputGeometry();
@@ -340,7 +344,10 @@ namespace DemiurgeConsole
 
         private static void OutputField(IField2d<float> field, Bitmap bmp, string filename)
         {
-            for (int x = 0, y = 0; y < field.Height; y += ++x / field.Width, x %= field.Width)
+            int w = Math.Min(field.Width, bmp.Width);
+            int h = Math.Min(field.Height, bmp.Height);
+
+            for (int x = 0, y = 0; y < h; y += ++x / w, x %= w)
             {
                 int value = Math.Min((int)(255 * field[y, x]), 255);
                 bmp.SetPixel(x, y, Color.FromArgb(value, value, value));
