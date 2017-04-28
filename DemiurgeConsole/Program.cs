@@ -99,10 +99,11 @@ namespace DemiurgeConsole
 
             IField2d<float> wateriness = GetWaterinessMap(wtf, rainfall);
             OutputField(new NormalizedComposition2d<float>(wateriness), bmp, args.outputPath + "wateriness.png");
-
-            Field2d<float> settlementMap;
-            var locations = GetSettlementLocations(wtf, wateriness, out settlementMap);
-            OutputField(new NormalizedComposition2d<float>(settlementMap), bmp, args.outputPath + "settlements.png");
+            
+            var locations = GetSettlementLocations(wtf, wateriness);
+            SparseField2d<float> settlementMap = new SparseField2d<float>(wtf.Width, wtf.Height, 0f);
+            foreach (var loc in locations) settlementMap.Add(loc, 1f);
+            OutputField(settlementMap, bmp, args.outputPath + "settlements.png");
 
             TriangleNet.Geometry.InputGeometry pointSet = new TriangleNet.Geometry.InputGeometry();
             foreach (var loc in locations)
@@ -111,6 +112,7 @@ namespace DemiurgeConsole
             }
             TriangleNet.Mesh mesh = new TriangleNet.Mesh();
             mesh.Triangulate(pointSet);
+            //TriangleNet.Tools.AdjacencyMatrix mat = new TriangleNet.Tools.AdjacencyMatrix(mesh);
 
             Field2d<float> meshField = new Field2d<float>(settlementMap);
             foreach (var e in mesh.Edges)
@@ -165,15 +167,14 @@ namespace DemiurgeConsole
             return new BlurredField(waterinessUnblurred, waterPortability);
         }
 
-        private static List<Point2d> GetSettlementLocations(WaterTableField wtf, IField2d<float> wateriness, out Field2d<float> debugOutput,
+        private static List<Point2d> GetSettlementLocations(WaterTableField wtf, IField2d<float> wateriness,
             float noiseScale = 0.1f, float noiseBlur = 3f, float noiseContribution = 0.15f)
         {
             IField2d<float> noise = new BlurredField(new MountainNoise(wtf.Width, wtf.Height, noiseScale), noiseBlur);
             Transformation2d<float, float, float> combination = new Transformation2d<float, float, float>(wateriness, noise, (w, n) => w + noiseContribution * n);
 
             List<Point2d> locations = new List<Point2d>();
-
-            debugOutput = new Field2d<float>(new ConstantField<float>(combination.Width, combination.Height, 0f));
+            
             for (int y = 1; y < combination.Height - 1; y++)
             {
                 for (int x = 1; x < combination.Width - 1; x++)
@@ -189,8 +190,6 @@ namespace DemiurgeConsole
                         combination[y + 0, x - 1] < combination[y, x])
                     {
                         locations.Add(new Point2d(x, y));
-
-                        debugOutput[y, x] = combination[y, x];
                     }
                 }
             }

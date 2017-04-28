@@ -31,10 +31,15 @@ namespace DemiurgeLib.Common
 
         public bool Contains(Point2d p)
         {
+            return Contains(p.x, p.y);
+        }
+
+        public bool Contains(int x, int y)
+        {
             HashSet<int> row;
-            if (this.set.TryGetValue(p.y, out row))
+            if (this.set.TryGetValue(y, out row))
             {
-                return row.Contains(p.x);
+                return row.Contains(x);
             }
             else
             {
