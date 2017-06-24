@@ -21,7 +21,29 @@ namespace DemiurgeConsole
             //RunWateryScenario();
             //new Thread(RunWaterHeightScenario, StackSize).Start();
             //RunMountainousScenario(1024, 1024, 0.005f);
-            new Thread(RunPopulationScenario, StackSize).Start();
+            //new Thread(RunPopulationScenario, StackSize).Start();
+            RunSplineScenario();
+        }
+
+        private static void RunSplineScenario()
+        {
+            Random r = new Random();
+            List<vFloat> cps = new List<vFloat>();
+            for (int i = 0; i < 20; i++)
+            {
+                cps.Add(new vFloat(r.Next(32, 480), r.Next(32, 480), r.Next(16, 240), r.Next(16, 240), r.Next(16, 240)));
+            }
+
+            var spline = new CenCatRomSpline(cps.ToArray(), 0.5f);
+
+            Bitmap bmp = new Bitmap(512, 512);
+            for (float t = 0; t < 1f; t += 0.0001f)
+            {
+                vFloat s = spline.Sample(t);
+                bmp.SetPixel((int)s[0], (int)s[1], Color.FromArgb((int)s[2], (int)s[3], (int)s[4]));
+            }
+
+            bmp.Save("C:\\Users\\Justin Murray\\Desktop\\spline.png");
         }
 
         private static void RunMountainousScenario(int width, int height, float startingScale)

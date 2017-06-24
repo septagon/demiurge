@@ -59,8 +59,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BaseSpline.cs" />
     <Compile Include="BlurredField.cs" />
     <Compile Include="BrownianTree.cs" />
+    <Compile Include="CenCatRomSpline.cs" />
     <Compile Include="ColumnField.cs" />
     <Compile Include="CommonTransforms.cs" />
     <Compile Include="Composition2d.cs" />
@@ -84,6 +86,7 @@
     <Compile Include="SubField.cs" />
     <Compile Include="Transformation2d.cs" />
     <Compile Include="Utils.cs" />
+    <Compile Include="Vectors.cs" />
     <Compile Include="WaterTableField.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
