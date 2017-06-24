@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace DemiurgeLib
 {
@@ -22,23 +23,34 @@ namespace DemiurgeLib
         public override vFloat Sample(float t)
         {
             // Find the proper four control points for a piecewise calculation.
-            t *= this.ts[this.ts.Length - 1];
+            t = ConvertToLocalT(t);
 
             int i1 = 0;
-            while (i1 + 1 < this.ts.Length && this.ts[i1 + 1] < t)
+            while (i1 + 1 < this.ts.Length && this.ts[i1 + 1] <= t)
                 i1++;
-
-            if (i1 == 0)
-                return this.controlPoints[1];
-            else if (i1 + 2 >= this.controlPoints.Length)
-                return this.controlPoints[this.controlPoints.Length - 2];
-
+            
             int i0 = i1 - 1;
             int i2 = i1 + 1;
             int i3 = i1 + 2;
+            
+            return Sample(t, i0, i1, i2, i3);
+        }
 
-            // Get all the variables conveniently named.
+        public IEnumerable<vFloat> GetSamples(int resolution = 100)
+        {
+            int idx = 1;
+            for (float t = 0f; t < 1f; t += 1f / resolution)
+            {
+                float lt = ConvertToLocalT(t);
+                if (lt >= this.ts[idx + 1])
+                    idx++;
 
+                yield return Sample(lt, idx - 1, idx, idx + 1, idx + 2);
+            }
+        }
+
+        private vFloat Sample(float t, int i0, int i1, int i2, int i3)
+        {
             vFloat p0 = this.controlPoints[i0];
             vFloat p1 = this.controlPoints[i1];
             vFloat p2 = this.controlPoints[i2];
@@ -52,7 +64,7 @@ namespace DemiurgeLib
             // Perform the appropriate calculations.
             var a1 = (t1 - t) / (t1 - t0) * p0 +
                 (t - t0) / (t1 - t0) * p1;
-            var a2 = (t2 - t) / (t2 - t1) * p1 + 
+            var a2 = (t2 - t) / (t2 - t1) * p1 +
                 (t - t1) / (t2 - t1) * p2;
             var a3 = (t3 - t) / (t3 - t2) * p2 +
                 (t - t2) / (t3 - t2) * p3;
@@ -60,9 +72,16 @@ namespace DemiurgeLib
                 (t - t0) / (t2 - t0) * a2;
             var b2 = (t3 - t) / (t3 - t1) * a2 +
                 (t - t1) / (t3 - t1) * a3;
-            
+
             return (t2 - t) / (t2 - t1) * b1 +
                 (t - t1) / (t2 - t1) * b2;
+        }
+
+        private float ConvertToLocalT(float t)
+        {
+            float min = this.ts[1];
+            float max = this.ts[this.ts.Length - 2];
+            return min + t * (max - min);
         }
     }
 }
