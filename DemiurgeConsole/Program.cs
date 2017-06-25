@@ -118,7 +118,8 @@ namespace DemiurgeConsole
             // 2x2 would get us .75
             // 1x1 would get us .375, which is slightly over 1 foot.
             // I think 16x16 is the sweet spot.  That's just over 9 square miles per small map.
-            const int SMALL_MAP_SIDE_LEN = 16;
+            const int SMALL_MAP_SIDE_LEN = 128;
+            const float STARTING_SCALE = 0.005f * SMALL_MAP_SIDE_LEN / 32;
             const int SMALL_MAP_RESIZED_LEN = 1024;
 
             WaterTableArgs args = new WaterTableArgs();
@@ -130,19 +131,37 @@ namespace DemiurgeConsole
             var wtf = GenerateWaters(bmp, baseMap);
             OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
 
-            var hasWater = new SparseField2d<float>(wtf.Width, wtf.Height, 0f);
-            foreach (var points in wtf.GeographicFeatures[HydrologicalField.LandType.Shore])
+            var hasWater = new SparseField2d<float>(wtf.Width, wtf.Height, 1f);
+            foreach (var points in wtf.GeographicFeatures[HydrologicalField.LandType.Land])
             {
                 foreach (var p in points)
                 {
-                    hasWater[p.y, p.x] = 1f;
+                    hasWater[p.y, p.x] = 0f;
                 }
             }
-            var noiseDamping = new ScaleTransform(new BlurredField(hasWater, 5f), 2f);
-            OutputField(noiseDamping, bmp, args.outputPath + "noise_damping.png");
+            var noiseDamping = new ScaleTransform(new BlurredField(hasWater, 10f), 10f);
 
-            var smallMap = new SubField<float>(wtf, new Rectangle(288, 288, SMALL_MAP_SIDE_LEN, SMALL_MAP_SIDE_LEN));
+            Rectangle rect = new Rectangle(288, 288, SMALL_MAP_SIDE_LEN, SMALL_MAP_SIDE_LEN);
+            var smallMap = new SubField<float>(wtf, rect);
             var scaledUp = new BlurredField(new ReResField(smallMap, SMALL_MAP_RESIZED_LEN / smallMap.Width), SMALL_MAP_RESIZED_LEN / (4 * SMALL_MAP_SIDE_LEN));
+            var smallDamp = new SubField<float>(noiseDamping, rect);
+            var scaledDamp = new BlurredField(new ReResField(smallDamp, SMALL_MAP_RESIZED_LEN / smallMap.Width), SMALL_MAP_RESIZED_LEN / (4 * SMALL_MAP_SIDE_LEN));
+
+            var mountainous = new ScaleTransform(new MountainNoise(1024, 1024, STARTING_SCALE), 0.5f);
+            var hilly = new ScaleTransform(new Simplex2D(1024, 1024, STARTING_SCALE), 0.1f);
+            var terrainNoise = new Transformation2d<float, float, float>(mountainous, hilly, (x, y, m, h) =>
+            {
+                float a = scaledUp[y, x];
+                float sh = Math.Max(-2f * Math.Abs(a - 0.2f) / 3f + 1f, 0f);
+                float sm = Math.Min(1.3f * a, 1f);
+                return h * sh + m * sm;
+            });
+
+            var combined = new NormalizedComposition2d<float>(scaledUp, new Transformation2d<float, float, float>(scaledDamp, terrainNoise, (s, m) => (1 - Math.Min(1, s)) * m));
+
+            OutputField(scaledDamp, new Bitmap(combined.Width, combined.Height), args.outputPath + "scaled_damp.png");
+            OutputField(scaledUp, new Bitmap(combined.Width, combined.Height), args.outputPath + "scaled_up.png");
+            OutputField(combined, new Bitmap(combined.Width, combined.Height), args.outputPath + "combined.png");
         }
 
         private static void RunPopulationScenario()
