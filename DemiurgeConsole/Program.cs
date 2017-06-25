@@ -131,17 +131,10 @@ namespace DemiurgeConsole
             var wtf = GenerateWaters(bmp, baseMap);
             OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
 
-            var hasWater = new SparseField2d<float>(wtf.Width, wtf.Height, 1f);
-            foreach (var points in wtf.GeographicFeatures[HydrologicalField.LandType.Land])
-            {
-                foreach (var p in points)
-                {
-                    hasWater[p.y, p.x] = 0f;
-                }
-            }
-            var noiseDamping = new ScaleTransform(new BlurredField(hasWater, 10f), 10f);
+            var hasWater = new Transformation2d<HydrologicalField.LandType, float>(wtf.HydroField, t => t == HydrologicalField.LandType.Land ? 0f : 1f);
+            var noiseDamping = new Transformation2d(new BlurredField(hasWater, 3f), v => 4.5f * v);
 
-            Rectangle rect = new Rectangle(288, 288, SMALL_MAP_SIDE_LEN, SMALL_MAP_SIDE_LEN);
+            Rectangle rect = new Rectangle(518, 785, SMALL_MAP_SIDE_LEN, SMALL_MAP_SIDE_LEN);
             var smallMap = new SubField<float>(wtf, rect);
             var scaledUp = new BlurredField(new ReResField(smallMap, SMALL_MAP_RESIZED_LEN / smallMap.Width), SMALL_MAP_RESIZED_LEN / (4 * SMALL_MAP_SIDE_LEN));
             var smallDamp = new SubField<float>(noiseDamping, rect);

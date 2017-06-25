@@ -21,6 +21,7 @@ namespace DemiurgeLib
         public List<TreeNode<Point2d>> Waterways { get; private set; }
         public List<TreeNode<TreeNode<Point2d>>> RiverSystems { get; private set; }
         public DrainageField DrainageField { get; private set; }
+        public IField2d<HydrologicalField.LandType> HydroField { get; private set; }
 
         public WaterTableField(
             IField2d<float> baseField,
@@ -34,10 +35,11 @@ namespace DemiurgeLib
         {
             getCarve = getCarve ?? (() => { return 1f; });
 
-            GeographicFeatures = hydroField.FindContiguousSets();
-            Waterways = GeographicFeatures.GetRiverSystems(hydroField).Where(ww => ww.Depth() >= minWaterwayLength).ToList();
+            this.HydroField = hydroField;
+            GeographicFeatures = this.HydroField.FindContiguousSets();
+            Waterways = GeographicFeatures.GetRiverSystems(this.HydroField).Where(ww => ww.Depth() >= minWaterwayLength).ToList();
             RiverSystems = Waterways.GetRivers();
-            DrainageField = new DrainageField(hydroField, Waterways);
+            DrainageField = new DrainageField(this.HydroField, Waterways);
 
             foreach (var sea in GeographicFeatures[HydrologicalField.LandType.Ocean])
             {
@@ -116,7 +118,7 @@ namespace DemiurgeLib
                 foreach (var p in land)
                 {
                     Point2d drain = DrainageField[p.y, p.x];
-                    if (hydroField[drain.y, drain.x] == HydrologicalField.LandType.Shore)
+                    if (this.HydroField[drain.y, drain.x] == HydrologicalField.LandType.Shore)
                     {
                         this[p.y, p.x] = this[drain.y, drain.x] + shoreHeightAboveRiver;
                     }
