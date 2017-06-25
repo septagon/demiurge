@@ -28,8 +28,8 @@ namespace DemiurgeLib.Common
         {
             get
             {
-                float i = x / this.scale - 0.5f;
-                float j = y / this.scale - 0.5f;
+                float i = (0.5f + x) / this.scale - 0.5f;
+                float j = (0.5f + y) / this.scale - 0.5f;
 
                 int iMin = Math.Max(0, (int)Math.Floor(i));
                 int jMin = Math.Max(0, (int)Math.Floor(j));
