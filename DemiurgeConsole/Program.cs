@@ -22,7 +22,8 @@ namespace DemiurgeConsole
             //new Thread(RunWaterHeightScenario, StackSize).Start();
             //RunMountainousScenario(1024, 1024, 0.005f);
             //new Thread(RunPopulationScenario, StackSize).Start();
-            RunSplineScenario();
+            //RunSplineScenario();
+            RunZoomedInScenario();
         }
 
         private static void RunSplineScenario()
@@ -129,6 +130,19 @@ namespace DemiurgeConsole
             }
             var noiseDamping = new ScaleTransform(new BlurredField(hasWater, 5f), 2f);
             OutputField(noiseDamping, bmp, args.outputPath + "noise_damping.png");
+
+            // 32x32 up to 1024x1024 will, from the fifth-of-a-mile-per-pixel source, get us approximately 10m per pixel.
+            // 16x16 would get us 5
+            // 8x8 would get us 2.5
+            // 4x4 would get us 1.25
+            // 2x2 would get us .75
+            // 1x1 would get us .375, which is slightly over 1 foot.
+            // I think 16x16 is the sweet spot.  That's just over 9 square miles per small map.
+            var sf = new SubField<float>(wtf, new Rectangle(288, 288, 16, 16));
+            var scaledUp = new BlurredField(new ReResField(sf, 1024 / sf.Width), 16);
+            OutputField(sf, new Bitmap(sf.Width, sf.Height), args.outputPath + "not_scaled_up.png");
+            OutputField(scaledUp, new Bitmap(scaledUp.Width, scaledUp.Height), args.outputPath + "scaled_up.png");
+            OutputField(new ReResField(scaledUp, 16f / scaledUp.Width), new Bitmap(16, 16), args.outputPath + "scaled_down.png");
         }
 
         private static void RunPopulationScenario()
@@ -393,7 +407,7 @@ namespace DemiurgeConsole
 
             for (int x = 0, y = 0; y < h; y += ++x / w, x %= w)
             {
-                int value = Math.Min((int)(255 * field[y, x]), 255);
+                int value = Math.Max(0, Math.Min((int)(255 * field[y, x]), 255));
                 bmp.SetPixel(x, y, Color.FromArgb(value, value, value));
             }
             bmp.Save(filename);

@@ -28,13 +28,13 @@ namespace DemiurgeLib.Common
         {
             get
             {
-                float i = x / this.scale;
-                float j = y / this.scale;
+                float i = x / this.scale - 0.5f;
+                float j = y / this.scale - 0.5f;
 
-                int iMin = (int)Math.Floor(i);
-                int jMin = (int)Math.Floor(j);
-                int iMax = (int)Math.Min(iMin + 1, this.source.Width - 1);
-                int jMax = (int)Math.Min(jMin + 1, this.source.Height - 1);
+                int iMin = Math.Max(0, (int)Math.Floor(i));
+                int jMin = Math.Max(0, (int)Math.Floor(j));
+                int iMax = Math.Min(iMin + 1, this.source.Width - 1);
+                int jMax = Math.Min(jMin + 1, this.source.Height - 1);
 
                 float ul = this.source[jMin, iMin];
                 float ur = this.source[jMin, iMax];
@@ -43,8 +43,10 @@ namespace DemiurgeLib.Common
 
                 float tx = 1f - (i - iMin);
                 float ty = 1f - (j - jMin);
-
-                return ((ul + ll) * tx + (ur + lr) * (1f - tx)) / 2f;
+                
+                float xLerp = ((ul + ll) * tx + (ur + lr) * (1f - tx)) / 2f;
+                float yLerp = ((ul + ur) * ty + (ll + lr) * (1f - ty)) / 2f;
+                return (xLerp + yLerp) / 2f;
             }
         }
     }
