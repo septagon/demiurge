@@ -108,6 +108,29 @@ namespace DemiurgeConsole
             public float wtfCarveMul = 1.3f;
         }
 
+        private static void RunZoomedInScenario()
+        {
+            WaterTableArgs args = new WaterTableArgs();
+            Bitmap bmp = new Bitmap(args.inputPath + "rivers.png");
+
+            IField2d<float> baseMap = new FieldFromBitmap(new Bitmap(args.inputPath + "base_heights.png"));
+            baseMap = new ReResField(baseMap, (float)bmp.Width / baseMap.Width);
+
+            var wtf = GenerateWaters(bmp, baseMap);
+            OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
+
+            var hasWater = new SparseField2d<float>(wtf.Width, wtf.Height, 0f);
+            foreach (var points in wtf.GeographicFeatures[HydrologicalField.LandType.Shore])
+            {
+                foreach (var p in points)
+                {
+                    hasWater[p.y, p.x] = 1f;
+                }
+            }
+            var noiseDamping = new ScaleTransform(new BlurredField(hasWater, 5f), 2f);
+            OutputField(noiseDamping, bmp, args.outputPath + "noise_damping.png");
+        }
+
         private static void RunPopulationScenario()
         {
             WaterTableArgs args = new WaterTableArgs();
