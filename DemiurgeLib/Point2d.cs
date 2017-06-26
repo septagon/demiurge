@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 
 namespace DemiurgeLib.Common
 {
@@ -14,6 +15,16 @@ namespace DemiurgeLib.Common
             this.y = y;
         }
 
+        public static implicit operator Point(Point2d pt)
+        {
+            return new Point(pt.x, pt.y);
+        }
+
+        public static implicit operator Point2d(Point pt)
+        {
+            return new Point2d(pt.X, pt.Y);
+        }
+
         public static bool operator ==(Point2d a, Point2d b)
         {
             return a.x == b.x && a.y == b.y;
@@ -27,6 +38,21 @@ namespace DemiurgeLib.Common
         public static Point2d operator +(Point2d a, Point2d b)
         {
             return new Point2d(a.x + b.x, a.y + b.y);
+        }
+
+        public static Point2d operator -(Point2d p)
+        {
+            return new Point2d(-p.x, -p.y);
+        }
+
+        public static Point2d operator -(Point2d a, Point2d b)
+        {
+            return a + -b;
+        }
+
+        public static Point2d operator *(int s, Point2d p)
+        {
+            return new Point2d(s * p.x, s * p.y);
         }
 
         public static int SqDist(Point2d a, Point2d b)

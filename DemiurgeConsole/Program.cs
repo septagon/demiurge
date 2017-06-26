@@ -122,6 +122,8 @@ namespace DemiurgeConsole
             const float STARTING_SCALE = 0.005f * SMALL_MAP_SIDE_LEN / 32;
             const int SMALL_MAP_RESIZED_LEN = 1024;
 
+            Random random = new Random();
+
             WaterTableArgs args = new WaterTableArgs();
             Bitmap bmp = new Bitmap(args.inputPath + "rivers.png");
 
@@ -132,13 +134,65 @@ namespace DemiurgeConsole
             OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
 
             var hasWater = new Transformation2d<HydrologicalField.LandType, float>(wtf.HydroField, t => t == HydrologicalField.LandType.Land ? 0f : 1f);
-            var noiseDamping = new Transformation2d(new BlurredField(hasWater, 3f), v => 4.5f * v);
+            var noiseDamping = new Transformation2d(new BlurredField(hasWater, 2f), v => 3.5f * v);
+
+            // Create the spline map.
+            SparseField2d<List<CenCatRomSpline>> relevantSplines = new SparseField2d<List<CenCatRomSpline>>(wtf.Width, wtf.Height, null);
+            {
+                //HashSet<TreeNode<Point2d>> relevantRivers = new HashSet<TreeNode<Point2d>>();
+                foreach (var system in wtf.RiverSystems)
+                {
+                    foreach (var river in system)
+                    {
+                        List<Point2d> pointsInRiver = new List<Point2d>();
+                        river.IteratePrimarySubtree().Iterate(it =>
+                        {
+                            pointsInRiver.Add(it.value);
+                        });
+
+                        // Add extra at the beginning and at the end, to allow Catmull-Rom to actually connect properly.
+                        pointsInRiver.Insert(0, 2 * pointsInRiver[0] - pointsInRiver[1]);
+                        pointsInRiver.Add(2 * pointsInRiver[pointsInRiver.Count - 1] - pointsInRiver[pointsInRiver.Count - 2]);
+
+                        CenCatRomSpline spline = new CenCatRomSpline(pointsInRiver.Select(p => new vFloat(p.x + (float)random.NextDouble(), p.y + (float)random.NextDouble())).ToArray(), 0.5f);
+                        for (int idx = 0; idx < pointsInRiver.Count - 1; idx++)
+                        {
+                            Point2d p = pointsInRiver[idx];
+                            if (relevantSplines[p.y, p.x] == null)
+                                relevantSplines[p.y, p.x] = new List<CenCatRomSpline>();
+                            relevantSplines[p.y, p.x].Add(spline);
+                        }
+                    }
+                }
+
+                OutputField(new Transformation2d<List<CenCatRomSpline>, float>(relevantSplines, l => l == null ? 1f : 0f), bmp, args.outputPath + "relevant_spline_points.png");
+            }
 
             Rectangle rect = new Rectangle(518, 785, SMALL_MAP_SIDE_LEN, SMALL_MAP_SIDE_LEN);
             var smallMap = new SubField<float>(wtf, rect);
             var scaledUp = new BlurredField(new ReResField(smallMap, SMALL_MAP_RESIZED_LEN / smallMap.Width), SMALL_MAP_RESIZED_LEN / (4 * SMALL_MAP_SIDE_LEN));
             var smallDamp = new SubField<float>(noiseDamping, rect);
             var scaledDamp = new BlurredField(new ReResField(smallDamp, SMALL_MAP_RESIZED_LEN / smallMap.Width), SMALL_MAP_RESIZED_LEN / (4 * SMALL_MAP_SIDE_LEN));
+
+            //// Make the spline accessor.
+            //IField2d<List<CenCatRomSpline>> scaledSplines = new FunctionField<List<CenCatRomSpline>>(scaledUp.Width, scaledUp.Height, (x, y) =>
+            //{
+            //    x = (x * SMALL_MAP_SIDE_LEN) / SMALL_MAP_RESIZED_LEN;
+            //    y = (y * SMALL_MAP_SIDE_LEN) / SMALL_MAP_RESIZED_LEN;
+            //
+            //    x += rect.Left;
+            //    y += rect.Top;
+            //
+            //    List<CenCatRomSpline> output = new List<CenCatRomSpline>();
+            //
+            //    for (int j = -1; j < 2; j++)
+            //        for (int i = -1; i < 2; i++)
+            //            if (relevantSplines[y + j, x + i] != null)
+            //                output.AddRange(relevantSplines[y + j, x + i]);
+            //
+            //    return output.Count == 0 ? null : output;
+            //});
+            //OutputField(new Transformation2d<List<CenCatRomSpline>, float>(scaledSplines, l => l == null ? 1f : 0f), new Bitmap(scaledSplines.Width, scaledSplines.Height), args.outputPath + "resized_splines.png");
 
             var mountainous = new ScaleTransform(new MountainNoise(1024, 1024, STARTING_SCALE), 0.5f);
             var hilly = new ScaleTransform(new Simplex2D(1024, 1024, STARTING_SCALE), 0.1f);
@@ -151,6 +205,36 @@ namespace DemiurgeConsole
             });
 
             var combined = new NormalizedComposition2d<float>(scaledUp, new Transformation2d<float, float, float>(scaledDamp, terrainNoise, (s, m) => (1 - Math.Min(1, s)) * m));
+
+            // Do spline-y things.
+            {
+                HashSet<CenCatRomSpline> splines = new HashSet<CenCatRomSpline>();
+                for (int y = rect.Top - 1; y <= rect.Bottom + 1; y++)
+                {
+                    for (int x = rect.Left - 1; x <= rect.Right + 1; x++)
+                    {
+                        List<CenCatRomSpline> ss = relevantSplines[y, x];
+                        if (ss != null)
+                            foreach (var s in ss)
+                                splines.Add(s);
+                    }
+                }
+
+                Field2d<float> riverField = new Field2d<float>(combined);
+                foreach (var s in splines)
+                {
+                    var samples = s.GetSamples(10000);
+                    foreach (var p in samples)
+                    {
+                        int x = (int)((p[0] - rect.Left) * SMALL_MAP_RESIZED_LEN / SMALL_MAP_SIDE_LEN);
+                        int y = (int)((p[1] - rect.Top) * SMALL_MAP_RESIZED_LEN / SMALL_MAP_SIDE_LEN);
+
+                        if (0 <= x && x < SMALL_MAP_RESIZED_LEN && 0 <= y && y < SMALL_MAP_RESIZED_LEN)
+                            riverField[y, x] = 0f;
+                    }
+                }
+                OutputField(riverField, new Bitmap(riverField.Width, riverField.Height), args.outputPath + "river_field.png");
+            }
 
             OutputField(scaledDamp, new Bitmap(combined.Width, combined.Height), args.outputPath + "scaled_damp.png");
             OutputField(scaledUp, new Bitmap(combined.Width, combined.Height), args.outputPath + "scaled_up.png");
