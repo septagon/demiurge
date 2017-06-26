@@ -83,6 +83,7 @@
     <Compile Include="ReResField.cs" />
     <Compile Include="RowField.cs" />
     <Compile Include="SparseField2d.cs" />
+    <Compile Include="SplineTree.cs" />
     <Compile Include="SubField.cs" />
     <Compile Include="Transformation2d.cs" />
     <Compile Include="Utils.cs" />

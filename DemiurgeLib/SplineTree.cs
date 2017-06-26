@@ -4,17 +4,21 @@ using System.Collections.Generic;
 
 namespace DemiurgeLib
 {
-    class SplineTree
+    public class SplineTree
     {
         private List<CenCatRomSpline> splines;
         private Random random;
+
+        private float alpha = 0.5f;
 
         public SplineTree(TreeNode<Point2d> tree, Random random)
         {
             this.splines = new List<CenCatRomSpline>();
             this.random = random;
 
-            BuildSplinesRecursively(tree, null);
+            var lastList = BuildSplinesRecursively(tree, null);
+            lastList.Add(GetParentPoint(lastList));
+            this.splines.Add(new CenCatRomSpline(lastList.ToArray(), this.alpha));
         }
 
         private List<vFloat> BuildSplinesRecursively(TreeNode<Point2d> node, vFloat parentPoint)
@@ -36,9 +40,14 @@ namespace DemiurgeLib
             }
             else if (node.children.Count == 1)
             {
-                List<vFloat> lst = BuildSplinesRecursively(node.children.GetEnumerator().Current, herePoint);
-                lst.Add(new vFloat(node.value.x + (float)this.random.NextDouble(), node.value.y + (float)this.random.NextDouble()));
-                return lst;
+                // We know there's only one because we just checked; we just use this syntax to get that one out of the children.
+                foreach (var child in node.children)
+                {
+                    List<vFloat> lst = BuildSplinesRecursively(child, herePoint);
+                    lst.Add(herePoint);
+                    return lst;
+                }
+                throw new InvalidOperationException("A non-empty list behaved as if it was empty.  Has a race condition been introduced?");
             }
             else
             {
@@ -58,30 +67,28 @@ namespace DemiurgeLib
                 
                 if (parentPoint == null)
                 {
-                    parentPoint = 2f * lsts[maxIdx][lsts[maxIdx].Count - 1] - lsts[maxIdx][lsts[maxIdx].Count - 2];
+                    parentPoint = GetParentPoint(lsts[maxIdx]);
                 }
 
                 for (int idx = 0; idx < lsts.Count; idx++)
                 {
-                    if (node.parent == null || idx != maxIdx)
+                    if (idx != maxIdx)
                     {
                         lsts[idx].Add(parentPoint);
-                        this.splines.Add(new CenCatRomSpline(lsts[idx].ToArray(), 0.5f));
+                        this.splines.Add(new CenCatRomSpline(lsts[idx].ToArray(), this.alpha));
                     }
                 }
 
-                if (node.parent == null)
-                {
-                    return null;
-                }
-                else
-                {
-                    return lsts[maxIdx];
-                }
+                return lsts[maxIdx];
             }
         }
 
-        private IEnumerable<vFloat> GetSamples(int resolution = 100)
+        private vFloat GetParentPoint(List<vFloat> pts)
+        {
+            return 2f * pts[pts.Count - 1] - pts[pts.Count - 2];
+        }
+
+        public IEnumerable<vFloat> GetSamples(int resolution = 100)
         {
             foreach (var spline in splines)
                 foreach (var sample in spline.GetSamples(resolution))

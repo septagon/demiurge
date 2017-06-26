@@ -137,35 +137,22 @@ namespace DemiurgeConsole
             var noiseDamping = new Transformation2d(new BlurredField(hasWater, 2f), v => 3.5f * v);
 
             // Create the spline map.
-            SparseField2d<List<CenCatRomSpline>> relevantSplines = new SparseField2d<List<CenCatRomSpline>>(wtf.Width, wtf.Height, null);
+            SparseField2d<List<SplineTree>> relevantSplines = new SparseField2d<List<SplineTree>>(wtf.Width, wtf.Height, null);
             {
                 //HashSet<TreeNode<Point2d>> relevantRivers = new HashSet<TreeNode<Point2d>>();
                 foreach (var system in wtf.RiverSystems)
                 {
-                    foreach (var river in system)
+                    SplineTree tree = new SplineTree(system.value, random);
+
+                    foreach (var p in system.value)
                     {
-                        List<Point2d> pointsInRiver = new List<Point2d>();
-                        river.IteratePrimarySubtree().Iterate(it =>
-                        {
-                            pointsInRiver.Add(it.value);
-                        });
-
-                        // Add extra at the beginning and at the end, to allow Catmull-Rom to actually connect properly.
-                        pointsInRiver.Insert(0, 2 * pointsInRiver[0] - pointsInRiver[1]);
-                        pointsInRiver.Add(2 * pointsInRiver[pointsInRiver.Count - 1] - pointsInRiver[pointsInRiver.Count - 2]);
-
-                        CenCatRomSpline spline = new CenCatRomSpline(pointsInRiver.Select(p => new vFloat(p.x + (float)random.NextDouble(), p.y + (float)random.NextDouble())).ToArray(), 0.5f);
-                        for (int idx = 0; idx < pointsInRiver.Count - 1; idx++)
-                        {
-                            Point2d p = pointsInRiver[idx];
-                            if (relevantSplines[p.y, p.x] == null)
-                                relevantSplines[p.y, p.x] = new List<CenCatRomSpline>();
-                            relevantSplines[p.y, p.x].Add(spline);
-                        }
+                        if (relevantSplines[p.value.y, p.value.x] == null)
+                            relevantSplines[p.value.y, p.value.x] = new List<SplineTree>();
+                        relevantSplines[p.value.y, p.value.x].Add(tree);
                     }
                 }
 
-                OutputField(new Transformation2d<List<CenCatRomSpline>, float>(relevantSplines, l => l == null ? 1f : 0f), bmp, args.outputPath + "relevant_spline_points.png");
+                OutputField(new Transformation2d<List<SplineTree>, float>(relevantSplines, l => l == null ? 1f : 0f), bmp, args.outputPath + "relevant_spline_points.png");
             }
 
             Rectangle rect = new Rectangle(518, 785, SMALL_MAP_SIDE_LEN, SMALL_MAP_SIDE_LEN);
@@ -208,22 +195,21 @@ namespace DemiurgeConsole
 
             // Do spline-y things.
             {
-                HashSet<CenCatRomSpline> splines = new HashSet<CenCatRomSpline>();
+                List<SplineTree> splines = new List<SplineTree>();
                 for (int y = rect.Top - 1; y <= rect.Bottom + 1; y++)
                 {
                     for (int x = rect.Left - 1; x <= rect.Right + 1; x++)
                     {
-                        List<CenCatRomSpline> ss = relevantSplines[y, x];
-                        if (ss != null)
-                            foreach (var s in ss)
-                                splines.Add(s);
+                        List<SplineTree> trees = relevantSplines[y, x];
+                        if (trees != null)
+                            splines.AddRange(trees);
                     }
                 }
 
                 Field2d<float> riverField = new Field2d<float>(combined);
                 foreach (var s in splines)
                 {
-                    var samples = s.GetSamples(10000);
+                    var samples = s.GetSamples(1000);
                     foreach (var p in samples)
                     {
                         int x = (int)((p[0] - rect.Left) * SMALL_MAP_RESIZED_LEN / SMALL_MAP_SIDE_LEN);
