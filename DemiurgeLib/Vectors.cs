@@ -118,5 +118,38 @@ namespace DemiurgeLib
         {
             return (float)Math.Sqrt(this.l2sq(other));
         }
+
+        public float dot(vFloat other)
+        {
+            return this.Zip(other, (a, b) => a * b).Foldl<float>((a, b) => a + b);
+        }
+
+        public float magSq()
+        {
+            return this.dot(this);
+        }
+        
+        public float mag()
+        {
+            return (float)Math.Sqrt(magSq());
+        }
+
+        public vFloat norm()
+        {
+            return this / this.mag();
+        }
+
+        public static vFloat Cross3d(vFloat l, vFloat r)
+        {
+            if (l.values.Length != 3 || r.values.Length != 3)
+            {
+                throw new ArgumentException("Arguments to Cross3d() were not 3D!");
+            }
+            
+            return new vFloat(
+                l[1] * r[2] - l[2] * r[1],
+                l[2] * r[0] - l[0] * r[2],
+                l[0] * r[1] - l[1] * r[0]);
+        }
     }
 }

@@ -59,33 +59,33 @@ namespace DemiurgeLib
             {
                 List<List<vFloat>> lsts = new List<List<vFloat>>();
 
-                int maxIdx = 0;
+                int minIdx = 0;
                 foreach (var n in node.children)
                 {
                     lsts.Add(BuildSplinesRecursively(n, herePoint));
                     lsts[lsts.Count - 1].Add(herePoint);
 
-                    if (lsts[lsts.Count - 1].Count > lsts[maxIdx].Count)
+                    if (lsts[lsts.Count - 1].Count < lsts[minIdx].Count)
                     {
-                        maxIdx = lsts.Count - 1;
+                        minIdx = lsts.Count - 1;
                     }
                 }
                 
                 if (parentPoint == null)
                 {
-                    parentPoint = GetParentPoint(lsts[maxIdx]);
+                    parentPoint = GetParentPoint(lsts[minIdx]);
                 }
 
                 for (int idx = 0; idx < lsts.Count; idx++)
                 {
-                    if (idx != maxIdx)
+                    if (idx != minIdx)
                     {
                         lsts[idx].Add(parentPoint);
                         this.splines.Add(new CenCatRomSpline(lsts[idx].ToArray(), this.alpha));
                     }
                 }
 
-                return lsts[maxIdx];
+                return lsts[minIdx];
             }
         }
 

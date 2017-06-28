@@ -4,6 +4,7 @@ using DemiurgeLib.Noise;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Threading;
 
@@ -161,9 +162,9 @@ namespace DemiurgeConsole
 
             // Do spline-y things.
             SparseField2d<float> riverbeds;
+            List<SplineTree> splines = new List<SplineTree>();
             {
                 // Collect a comprehensive list of the spline trees for the local frame.
-                List<SplineTree> splines = new List<SplineTree>();
                 for (int y = rect.Top - 1; y <= rect.Bottom + 1; y++)
                 {
                     for (int x = rect.Left - 1; x <= rect.Right + 1; x++)
@@ -238,7 +239,10 @@ namespace DemiurgeConsole
                 new Composition2d<float>(scaledUp, new Transformation2d<float, float, float>(scaledDamp, terrainNoise, (s, m) => (1 - Math.Min(1, s)) * m)),
                 (r, c) => r == float.MinValue ? c : Math.Min(r, c)));
 
-            OutputField(combined, new Bitmap(combined.Width, combined.Height), args.outputPath + "combined.png");
+            Bitmap img = new Bitmap(combined.Width, combined.Height);
+            OutputField(combined, img, args.outputPath + "combined.png");
+
+            OutputAsOBJ(combined, splines, rect, img, args.outputPath);
         }
 
         private static void RunPopulationScenario()
@@ -587,6 +591,169 @@ namespace DemiurgeConsole
                 }
             }
             bmp.Save(outputFile);
+        }
+
+        private static void OutputAsOBJ(IField2d<float> heights, IEnumerable<SplineTree> rivers, Rectangle rect, Bitmap bmp, string outputDir, string outputName = "terrain")
+        {
+            using (var objWriter = new StreamWriter(File.OpenWrite(outputDir + outputName + ".obj")))
+            {
+                objWriter.WriteLine("mtllib " + outputName + ".mtl");
+                objWriter.WriteLine("o " + outputName + "_o");
+
+                IField2d<vFloat> verts = new Transformation2d<float, vFloat>(heights, (x, y, z) => new vFloat(x, -y, 30f * z));
+
+                // One vertex per pixel.
+                for (int y = 0; y < verts.Height; y++)
+                {
+                    for (int x = 0; x < verts.Width; x++)
+                    {
+                        vFloat v = verts[y, x];
+                        objWriter.WriteLine("v " + v[0] + " " + v[1] + " " + v[2]);
+                    }
+                }
+
+                // Normal of the vertex is the cross product of skipping vectors in X and Y.  If skipping is unavailable, use the local vector.
+                for (int y = 0; y < verts.Height; y++)
+                {
+                    for (int x = 0; x < verts.Width; x++)
+                    {
+                        int xl = Math.Max(x - 1, 0);
+                        int xr = Math.Min(x + 1, verts.Width - 1);
+                        int yl = Math.Max(y - 1, 0);
+                        int yr = Math.Min(y + 1, verts.Height - 1);
+
+                        vFloat xAxis = verts[y, xr] - verts[y, xl];
+                        vFloat yAxis = verts[yr, x] - verts[yl, x];
+
+                        vFloat n = vFloat.Cross3d(xAxis, yAxis);
+                        if (n[2] < 0f)
+                            n = -n;
+                        n = n.norm();
+
+                        objWriter.WriteLine("vn " + n[0] + " " + n[1] + " " + n[2]);
+                    }
+                }
+
+                // Texture coordinate is trivial.
+                for (int y = 0; y < verts.Height; y++)
+                {
+                    for (int x = 0; x < verts.Width; x++)
+                    {
+                        objWriter.WriteLine("vt " + (1f * x / (verts.Width - 1)) + " " + (1f - 1f * y / (verts.Height - 1)));
+                    }
+                }
+
+                objWriter.WriteLine("g " + outputName + "_g");
+                objWriter.WriteLine("usemtl " + outputName + "_mtl");
+
+                // Now the faces.  Since we're not optimizing at all, this is incredibly simple.
+                // TODO: Fix bug where including edge pixels causes tris to go across entire map for some reason.  For now, just workaround.
+                for (int y = 1; y < verts.Height - 2; y++)
+                {
+                    for (int x = 1; x < verts.Width - 2; x++)
+                    {
+                        int tl = y * verts.Width + x;
+                        int tr = tl + 1;
+                        int bl = tl + verts.Width;
+                        int br = bl + 1;
+
+                        objWriter.WriteLine("f " +
+                            tl + "/" + tl + "/" + tl + " " + 
+                            br + "/" + br + "/" + br + " " +
+                            tr + "/" + tr + "/" + tr);
+
+                        objWriter.WriteLine("f " +
+                            tl + "/" + tl + "/" + tl + " " +
+                            bl + "/" + bl + "/" + bl + " " +
+                            br + "/" + br + "/" + br);
+                    }
+                }
+            }
+
+            using (var mtlWriter = new StreamWriter(File.OpenWrite(outputDir + outputName + ".mtl")))
+            {
+                mtlWriter.WriteLine("newmtl " + outputName + "_mtl");
+                mtlWriter.WriteLine("Ka 0.000000 0.000000 0.000000");
+                mtlWriter.WriteLine("Kd 0.800000 0.800000 0.800000");
+                mtlWriter.WriteLine("Ks 0.200000 0.200000 0.200000");
+                mtlWriter.WriteLine("Ns 1.000000");
+                mtlWriter.WriteLine("d 1.000000");
+                mtlWriter.WriteLine("illum 1");
+                mtlWriter.WriteLine("map_Kd " + outputName + ".jpg");
+            }
+
+            CenCatRomSpline colors = new CenCatRomSpline(
+                new vFloat[]
+                {
+                    new vFloat(Color.Blue.R, Color.Blue.G, Color.Blue.B, 11),
+                    new vFloat(Color.Blue.R, Color.Blue.G, Color.Blue.B, 0),
+                    new vFloat(Color.SandyBrown.R, Color.SandyBrown.G, Color.SandyBrown.B, 0),
+                    new vFloat(Color.LawnGreen.R, Color.LawnGreen.G, Color.LawnGreen.B, 0),
+                    new vFloat(Color.ForestGreen.R, Color.ForestGreen.G, Color.ForestGreen.B, 0),
+                    new vFloat(Color.SlateGray.R, Color.SlateGray.G, Color.SlateGray.B, 0),
+                    new vFloat(Color.LightGray.R, Color.LightGray.G, Color.LightGray.B, 0),
+                    new vFloat(Color.White.R, Color.White.G, Color.White.B, 0),
+                    new vFloat(Color.White.R, Color.White.G, Color.White.B, 1)
+                    },
+                    0.5f);
+            for (int y = 0; y < bmp.Height; y++)
+            {
+                for (int x = 0; x < bmp.Width; x++)
+                {
+                    vFloat c = colors.Sample(heights[y, x]);
+                    bmp.SetPixel(x, y, Color.FromArgb(
+                        (byte)c[0],
+                        (byte)c[1],
+                        (byte)c[2]
+                        ));
+                }
+            }
+
+            foreach (var s in rivers)
+            {
+                var samples = s.GetSamples(32000 / rect.Width);
+
+                int priorX = int.MinValue;
+                int priorY = int.MinValue;
+
+                foreach (var p in samples)
+                {
+                    int x = (int)((p[0] - rect.Left) * heights.Width / rect.Width);
+                    int y = (int)((p[1] - rect.Top) * heights.Height / rect.Height);
+
+                    if (x == priorX && y == priorY)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        priorX = x;
+                        priorY = y;
+                    }
+
+                    if (0 <= x && x < heights.Width && 0 <= y && y < heights.Height)
+                    {
+                        int r = 5 * 32 / rect.Width;
+
+                        for (int j = -r; j <= r; j++)
+                        {
+                            for (int i = -r; i <= r; i++)
+                            {
+                                int xx = x + i;
+                                int yy = y + j;
+
+                                if (0 <= xx && xx < heights.Width && 0 <= yy && yy < heights.Height)
+                                {
+                                    bmp.SetPixel(xx, yy, Color.Blue);
+                                    //float dSq = xx * xx + yy * yy;
+                                    //riverbeds[yy, xx] = p[2] + dSq / (1024f * 32 / rect.Width);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            bmp.Save(outputDir + outputName + ".jpg");
         }
 
         private static WaterTableField GenerateWaters(Bitmap bmp, IField2d<float> baseField = null, WaterTableArgs args = null, Random random = null)

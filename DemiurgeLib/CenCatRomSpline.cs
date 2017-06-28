@@ -22,6 +22,11 @@ namespace DemiurgeLib
 
         public override vFloat Sample(float t)
         {
+            if (t <= 0f)
+                return this.controlPoints[0];
+            else if (t >= 1f)
+                return this.controlPoints[this.controlPoints.Length - 1];
+
             // Find the proper four control points for a piecewise calculation.
             t = ConvertToLocalT(t);
 
