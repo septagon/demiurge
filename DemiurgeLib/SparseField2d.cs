@@ -60,7 +60,7 @@ namespace DemiurgeLib
         public void Add(Point2d pt, TValue value)
         {
             ValidatePoint(pt);
-            this.values.Add(pt, value);
+            this.values[pt] = value;
         }
 
         public void Remove(Point2d pt)

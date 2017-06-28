@@ -6,24 +6,30 @@ namespace DemiurgeLib
 {
     public class SplineTree
     {
+        // Values stored in spline control points are (in order) X, Y, altitude
         private List<CenCatRomSpline> splines;
+        private IField2d<float> altitudes;
         private Random random;
 
         private float alpha = 0.5f;
 
-        public SplineTree(TreeNode<Point2d> tree, Random random)
+        public SplineTree(TreeNode<Point2d> tree, IField2d<float> altitudes, Random random)
         {
             this.splines = new List<CenCatRomSpline>();
+            this.altitudes = altitudes;
             this.random = random;
 
             var lastList = BuildSplinesRecursively(tree, null);
             lastList.Add(GetParentPoint(lastList));
             this.splines.Add(new CenCatRomSpline(lastList.ToArray(), this.alpha));
+
+            this.altitudes = null;
+            this.random = null;
         }
 
         private List<vFloat> BuildSplinesRecursively(TreeNode<Point2d> node, vFloat parentPoint)
         {
-            vFloat herePoint = new vFloat(node.value.x + (float)this.random.NextDouble(), node.value.y + (float)this.random.NextDouble());
+            vFloat herePoint = new vFloat(node.value.x + (float)this.random.NextDouble(), node.value.y + (float)this.random.NextDouble(), this.altitudes[node.value.y, node.value.x]);
 
             if (node.children.Count == 0)
             {

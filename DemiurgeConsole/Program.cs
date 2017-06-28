@@ -135,14 +135,14 @@ namespace DemiurgeConsole
 
             var hasWater = new Transformation2d<HydrologicalField.LandType, float>(wtf.HydroField, t => t == HydrologicalField.LandType.Land ? 0f : 1f);
             var noiseDamping = new Transformation2d(new BlurredField(hasWater, 2f), v => 3.5f * v);
-
+            
             // Create the spline map.
             SparseField2d<List<SplineTree>> relevantSplines = new SparseField2d<List<SplineTree>>(wtf.Width, wtf.Height, null);
             {
                 //HashSet<TreeNode<Point2d>> relevantRivers = new HashSet<TreeNode<Point2d>>();
                 foreach (var system in wtf.RiverSystems)
                 {
-                    SplineTree tree = new SplineTree(system.value, random);
+                    SplineTree tree = new SplineTree(system.value, wtf, random);
 
                     foreach (var p in system.value)
                     {
@@ -151,8 +151,6 @@ namespace DemiurgeConsole
                         relevantSplines[p.value.y, p.value.x].Add(tree);
                     }
                 }
-
-                OutputField(new Transformation2d<List<SplineTree>, float>(relevantSplines, l => l == null ? 1f : 0f), bmp, args.outputPath + "relevant_spline_points.png");
             }
 
             Rectangle rect = new Rectangle(518, 785, SMALL_MAP_SIDE_LEN, SMALL_MAP_SIDE_LEN);
@@ -161,40 +159,10 @@ namespace DemiurgeConsole
             var smallDamp = new SubField<float>(noiseDamping, rect);
             var scaledDamp = new BlurredField(new ReResField(smallDamp, SMALL_MAP_RESIZED_LEN / smallMap.Width), SMALL_MAP_RESIZED_LEN / (4 * SMALL_MAP_SIDE_LEN));
 
-            //// Make the spline accessor.
-            //IField2d<List<CenCatRomSpline>> scaledSplines = new FunctionField<List<CenCatRomSpline>>(scaledUp.Width, scaledUp.Height, (x, y) =>
-            //{
-            //    x = (x * SMALL_MAP_SIDE_LEN) / SMALL_MAP_RESIZED_LEN;
-            //    y = (y * SMALL_MAP_SIDE_LEN) / SMALL_MAP_RESIZED_LEN;
-            //
-            //    x += rect.Left;
-            //    y += rect.Top;
-            //
-            //    List<CenCatRomSpline> output = new List<CenCatRomSpline>();
-            //
-            //    for (int j = -1; j < 2; j++)
-            //        for (int i = -1; i < 2; i++)
-            //            if (relevantSplines[y + j, x + i] != null)
-            //                output.AddRange(relevantSplines[y + j, x + i]);
-            //
-            //    return output.Count == 0 ? null : output;
-            //});
-            //OutputField(new Transformation2d<List<CenCatRomSpline>, float>(scaledSplines, l => l == null ? 1f : 0f), new Bitmap(scaledSplines.Width, scaledSplines.Height), args.outputPath + "resized_splines.png");
-
-            var mountainous = new ScaleTransform(new MountainNoise(1024, 1024, STARTING_SCALE), 0.5f);
-            var hilly = new ScaleTransform(new Simplex2D(1024, 1024, STARTING_SCALE), 0.1f);
-            var terrainNoise = new Transformation2d<float, float, float>(mountainous, hilly, (x, y, m, h) =>
-            {
-                float a = scaledUp[y, x];
-                float sh = Math.Max(-2f * Math.Abs(a - 0.2f) / 3f + 1f, 0f);
-                float sm = Math.Min(1.3f * a, 1f);
-                return h * sh + m * sm;
-            });
-
-            var combined = new NormalizedComposition2d<float>(scaledUp, new Transformation2d<float, float, float>(scaledDamp, terrainNoise, (s, m) => (1 - Math.Min(1, s)) * m));
-
             // Do spline-y things.
+            SparseField2d<float> riverbeds;
             {
+                // Collect a comprehensive list of the spline trees for the local frame.
                 List<SplineTree> splines = new List<SplineTree>();
                 for (int y = rect.Top - 1; y <= rect.Bottom + 1; y++)
                 {
@@ -206,24 +174,70 @@ namespace DemiurgeConsole
                     }
                 }
 
-                Field2d<float> riverField = new Field2d<float>(combined);
+                // Crafts the actual river kernel.  Probably not the best way to go about this.
+                riverbeds = new SparseField2d<float>(SMALL_MAP_RESIZED_LEN, SMALL_MAP_RESIZED_LEN, float.MinValue);
                 foreach (var s in splines)
                 {
-                    var samples = s.GetSamples(1000);
+                    var samples = s.GetSamples(32000 / SMALL_MAP_SIDE_LEN);
+
+                    int priorX = int.MinValue;
+                    int priorY = int.MinValue;
+
                     foreach (var p in samples)
                     {
                         int x = (int)((p[0] - rect.Left) * SMALL_MAP_RESIZED_LEN / SMALL_MAP_SIDE_LEN);
                         int y = (int)((p[1] - rect.Top) * SMALL_MAP_RESIZED_LEN / SMALL_MAP_SIDE_LEN);
 
+                        if (x == priorX && y == priorY)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            priorX = x;
+                            priorY = y;
+                        }
+
                         if (0 <= x && x < SMALL_MAP_RESIZED_LEN && 0 <= y && y < SMALL_MAP_RESIZED_LEN)
-                            riverField[y, x] = 0f;
+                        {
+                            const int r = 5 * 32 / SMALL_MAP_SIDE_LEN;
+
+                            for (int j = -r; j <= r; j++)
+                            {
+                                for (int i = -r; i <= r; i++)
+                                {
+                                    int xx = x + i;
+                                    int yy = y + j;
+
+                                    if (0 <= xx && xx < SMALL_MAP_RESIZED_LEN && 0 <= yy && yy < SMALL_MAP_RESIZED_LEN)
+                                    {
+                                        float dSq = xx * xx + yy * yy;
+                                        riverbeds[yy, xx] = p[2] +  dSq / (1024f * 32 / SMALL_MAP_SIDE_LEN);
+                                        //scaledDamp[yy, xx] = 1f;
+                                        //scaledUp[yy, xx] = Math.Min(scaledUp[yy, xx], p[2] + (float)Math.Sqrt(xx * xx + yy * yy) / 1f);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                OutputField(riverField, new Bitmap(riverField.Width, riverField.Height), args.outputPath + "river_field.png");
+                //OutputField(riverbeds, new Bitmap(riverbeds.Width, riverbeds.Height), args.outputPath + "river_field.png");
             }
 
-            OutputField(scaledDamp, new Bitmap(combined.Width, combined.Height), args.outputPath + "scaled_damp.png");
-            OutputField(scaledUp, new Bitmap(combined.Width, combined.Height), args.outputPath + "scaled_up.png");
+            var mountainous = new ScaleTransform(new MountainNoise(1024, 1024, STARTING_SCALE), 1f);
+            var hilly = new ScaleTransform(new Simplex2D(1024, 1024, STARTING_SCALE), 0.1f);
+            var terrainNoise = new Transformation2d<float, float, float>(mountainous, hilly, (x, y, m, h) =>
+            {
+                float a = scaledUp[y, x];
+                float sh = Math.Max(-2f * Math.Abs(a - 0.2f) / 3f + 1f, 0f);
+                float sm = Math.Min(1.3f * a, 1f);
+                return h * sh + m * sm;
+            });
+
+            IField2d<float> combined = new NormalizedComposition2d<float>(new Transformation2d<float, float, float>(riverbeds,
+                new Composition2d<float>(scaledUp, new Transformation2d<float, float, float>(scaledDamp, terrainNoise, (s, m) => (1 - Math.Min(1, s)) * m)),
+                (r, c) => r == float.MinValue ? c : Math.Min(r, c)));
+
             OutputField(combined, new Bitmap(combined.Width, combined.Height), args.outputPath + "combined.png");
         }
 
