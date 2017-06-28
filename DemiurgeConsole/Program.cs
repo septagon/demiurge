@@ -600,7 +600,7 @@ namespace DemiurgeConsole
                 objWriter.WriteLine("mtllib " + outputName + ".mtl");
                 objWriter.WriteLine("o " + outputName + "_o");
 
-                IField2d<vFloat> verts = new Transformation2d<float, vFloat>(heights, (x, y, z) => new vFloat(x, -y, 30f * z));
+                IField2d<vFloat> verts = new Transformation2d<float, vFloat>(heights, (x, y, z) => new vFloat(x, -y, z * 4096 / rect.Width));
 
                 // One vertex per pixel.
                 for (int y = 0; y < verts.Height; y++)
