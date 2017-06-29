@@ -119,7 +119,7 @@ namespace DemiurgeConsole
             // 2x2 would get us .75
             // 1x1 would get us .375, which is slightly over 1 foot.
             // I think 16x16 is the sweet spot.  That's just over 9 square miles per small map.
-            const int SMALL_MAP_SIDE_LEN = 128;
+            const int SMALL_MAP_SIDE_LEN = 256;
             const float STARTING_SCALE = 0.005f * SMALL_MAP_SIDE_LEN / 32;
             const int SMALL_MAP_RESIZED_LEN = 1024;
 
@@ -154,7 +154,7 @@ namespace DemiurgeConsole
                 }
             }
 
-            Rectangle rect = new Rectangle(518, 785, SMALL_MAP_SIDE_LEN, SMALL_MAP_SIDE_LEN);
+            Rectangle rect = new Rectangle(518, 785 - 128, SMALL_MAP_SIDE_LEN, SMALL_MAP_SIDE_LEN);
             var smallMap = new SubField<float>(wtf, rect);
             var scaledUp = new BlurredField(new ReResField(smallMap, SMALL_MAP_RESIZED_LEN / smallMap.Width), SMALL_MAP_RESIZED_LEN / (4 * SMALL_MAP_SIDE_LEN));
             var smallDamp = new SubField<float>(noiseDamping, rect);
@@ -682,31 +682,49 @@ namespace DemiurgeConsole
                 mtlWriter.WriteLine("map_Kd " + outputName + ".jpg");
             }
 
-            CenCatRomSpline colors = new CenCatRomSpline(
-                new vFloat[]
-                {
-                    new vFloat(Color.Blue.R, Color.Blue.G, Color.Blue.B, 11),
-                    new vFloat(Color.Blue.R, Color.Blue.G, Color.Blue.B, 0),
-                    new vFloat(Color.SandyBrown.R, Color.SandyBrown.G, Color.SandyBrown.B, 0),
-                    new vFloat(Color.LawnGreen.R, Color.LawnGreen.G, Color.LawnGreen.B, 0),
-                    new vFloat(Color.ForestGreen.R, Color.ForestGreen.G, Color.ForestGreen.B, 0),
-                    new vFloat(Color.SlateGray.R, Color.SlateGray.G, Color.SlateGray.B, 0),
-                    new vFloat(Color.LightGray.R, Color.LightGray.G, Color.LightGray.B, 0),
-                    new vFloat(Color.White.R, Color.White.G, Color.White.B, 0),
-                    new vFloat(Color.White.R, Color.White.G, Color.White.B, 1)
-                    },
-                    0.5f);
-            for (int y = 0; y < bmp.Height; y++)
+            //CenCatRomSpline colors = new CenCatRomSpline(
+            //    new vFloat[]
+            //    {
+            //        new vFloat(Color.Blue.R, Color.Blue.G, Color.Blue.B, 11),
+            //        new vFloat(Color.Blue.R, Color.Blue.G, Color.Blue.B, 0),
+            //        new vFloat(Color.SandyBrown.R, Color.SandyBrown.G, Color.SandyBrown.B, 0),
+            //        new vFloat(Color.LawnGreen.R, Color.LawnGreen.G, Color.LawnGreen.B, 0),
+            //        new vFloat(Color.ForestGreen.R, Color.ForestGreen.G, Color.ForestGreen.B, 0),
+            //        new vFloat(Color.SlateGray.R, Color.SlateGray.G, Color.SlateGray.B, 0),
+            //        new vFloat(Color.LightGray.R, Color.LightGray.G, Color.LightGray.B, 0),
+            //        new vFloat(Color.White.R, Color.White.G, Color.White.B, 0),
+            //        new vFloat(Color.White.R, Color.White.G, Color.White.B, 1)
+            //        },
+            //        0.5f);
+            //for (int y = 0; y < bmp.Height; y++)
+            //{
+            //    for (int x = 0; x < bmp.Width; x++)
+            //    {
+            //        vFloat c = colors.Sample(heights[y, x]);
+            //        bmp.SetPixel(x, y, Color.FromArgb(
+            //            (byte)c[0],
+            //            (byte)c[1],
+            //            (byte)c[2]
+            //            ));
+            //    }
+            //}
+            for (int x = 0, y = 0; y < heights.Height; y += ++x / heights.Width, x %= heights.Width)
             {
-                for (int x = 0; x < bmp.Width; x++)
-                {
-                    vFloat c = colors.Sample(heights[y, x]);
-                    bmp.SetPixel(x, y, Color.FromArgb(
-                        (byte)c[0],
-                        (byte)c[1],
-                        (byte)c[2]
-                        ));
-                }
+                float value = heights[y, x];
+                Color color;
+                if (value < 0.01f)
+                    color = Color.DodgerBlue;
+                else if (value < 0.1f)
+                    color = Lerp(Color.Beige, Color.LawnGreen, value / 0.1f);
+                else if (value < 0.4f)
+                    color = Lerp(Color.LawnGreen, Color.ForestGreen, (value - 0.1f) / 0.3f);
+                else if (value < 0.8f)
+                    color = Lerp(Color.ForestGreen, Color.SlateGray, (value - 0.4f) / 0.4f);
+                else if (value < 0.9f)
+                    color = Lerp(Color.SlateGray, Color.White, (value - 0.8f) / 0.1f);
+                else
+                    color = Color.White;
+                bmp.SetPixel(x, y, color);
             }
 
             foreach (var s in rivers)
@@ -744,7 +762,7 @@ namespace DemiurgeConsole
 
                                 if (0 <= xx && xx < heights.Width && 0 <= yy && yy < heights.Height)
                                 {
-                                    bmp.SetPixel(xx, yy, Color.Blue);
+                                    bmp.SetPixel(xx, yy, Color.DodgerBlue);
                                     //float dSq = xx * xx + yy * yy;
                                     //riverbeds[yy, xx] = p[2] + dSq / (1024f * 32 / rect.Width);
                                 }
