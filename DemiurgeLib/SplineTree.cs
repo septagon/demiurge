@@ -89,15 +89,22 @@ namespace DemiurgeLib
             }
         }
 
-        private vFloat GetParentPoint(List<vFloat> pts)
+        private static vFloat GetParentPoint(List<vFloat> pts)
         {
             return 2f * pts[pts.Count - 1] - pts[pts.Count - 2];
         }
 
-        public IEnumerable<vFloat> GetSamples(int resolution = 100)
+        public IEnumerable<vFloat> GetSamplesFromAll(int sampleCount = 100)
         {
-            foreach (var spline in splines)
-                foreach (var sample in spline.GetSamples(resolution))
+            foreach (var spline in this.splines)
+                foreach (var sample in spline.GetSamples(sampleCount))
+                    yield return sample;
+        }
+
+        public IEnumerable<vFloat> GetSamplesPerControlPoint(float samplesPerControlPoint = 3f)
+        {
+            foreach (var spline in this.splines)
+                foreach (var sample in spline.GetSamplesPerControlPoint(samplesPerControlPoint))
                     yield return sample;
         }
     }

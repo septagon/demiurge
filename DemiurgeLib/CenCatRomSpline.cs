@@ -54,6 +54,11 @@ namespace DemiurgeLib
             }
         }
 
+        public IEnumerable<vFloat> GetSamplesPerControlPoint(float samplesPerControlPoint)
+        {
+            return GetSamples((int)Math.Ceiling(this.controlPoints.Length * samplesPerControlPoint));
+        }
+
         private vFloat Sample(float t, int i0, int i1, int i2, int i3)
         {
             vFloat p0 = this.controlPoints[i0];

@@ -8,11 +8,11 @@ namespace DemiurgeConsole
 
         static void Main(string[] args)
         {
-            TestScenarios.RunWateryScenario();
-            new Thread(TestScenarios.RunWaterHeightScenario, StackSize).Start();
-            TestScenarios.RunMountainousScenario(1024, 1024, 0.005f);
-            new Thread(TestScenarios.RunPopulationScenario, StackSize).Start();
-            TestScenarios.RunSplineScenario();
+            //TestScenarios.RunWateryScenario();
+            //new Thread(TestScenarios.RunWaterHeightScenario, StackSize).Start();
+            //TestScenarios.RunMountainousScenario(1024, 1024, 0.005f);
+            //new Thread(TestScenarios.RunPopulationScenario, StackSize).Start();
+            //TestScenarios.RunSplineScenario();
             TestScenarios.RunZoomedInScenario();
         }
     }

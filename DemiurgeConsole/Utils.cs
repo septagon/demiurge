@@ -385,7 +385,7 @@ namespace DemiurgeConsole
 
             foreach (var s in rivers)
             {
-                var samples = s.GetSamples(32000 / rect.Width);
+                var samples = s.GetSamplesFromAll(32000 / rect.Width);
 
                 int priorX = int.MinValue;
                 int priorY = int.MinValue;

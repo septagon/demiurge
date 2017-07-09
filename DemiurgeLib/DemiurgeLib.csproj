@@ -67,15 +67,19 @@
     <Compile Include="CommonTransforms.cs" />
     <Compile Include="Composition2d.cs" />
     <Compile Include="ContiguousSets.cs" />
+    <Compile Include="ContinuousField.cs" />
     <Compile Include="DrainageField.cs" />
     <Compile Include="Field2d.cs" />
     <Compile Include="HydrologicalField.cs" />
+    <Compile Include="IContinuum2d.cs" />
     <Compile Include="IField2d.cs" />
+    <Compile Include="Noise\ContinuousMountainNoise.cs" />
     <Compile Include="Noise\DiamondSquareNoise.cs" />
     <Compile Include="Noise\DiamondSquare2D.cs" />
     <Compile Include="Noise\MountainNoise.cs" />
     <Compile Include="Noise\OpenSimplexNoise.cs" />
     <Compile Include="Noise\Simplex2D.cs" />
+    <Compile Include="Noise\ContinuousSimplexNoise.cs" />
     <Compile Include="NormalizedComposition2d.cs" />
     <Compile Include="Point2d.cs" />
     <Compile Include="PointSet2d.cs" />
@@ -84,6 +88,7 @@
     <Compile Include="RowField.cs" />
     <Compile Include="SparseField2d.cs" />
     <Compile Include="SplineTree.cs" />
+    <Compile Include="SubContinuum.cs" />
     <Compile Include="SubField.cs" />
     <Compile Include="Transformation2d.cs" />
     <Compile Include="Utils.cs" />

@@ -69,8 +69,8 @@ namespace DemiurgeConsole
             //});
 
             Utils.OutputField(mountainNoise0, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m0.png");
-            var scaled = new ReResField(new SubField<float>(new Utils.FieldFromBitmap(jranjana), new Rectangle(400, 300, 200, 200)), 5f);
-            Utils.OutputField(scaled, new Bitmap(scaled.Width, scaled.Height), "C:\\Users\\Justin Murray\\Desktop\\scaled.png");
+            //var scaled = new ReResField(new SubField<float>(new Utils.FieldFromBitmap(jranjana), new Rectangle(400, 300, 200, 200)), 5f);
+            //Utils.OutputField(scaled, new Bitmap(scaled.Width, scaled.Height), "C:\\Users\\Justin Murray\\Desktop\\scaled.png");
             //Utils.OutputField(mountainNoise1, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m1.png");
             //Utils.OutputField(mountainNoise2, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m2.png");
             //Utils.OutputField(mountainNoise3, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m3.png");
@@ -296,13 +296,13 @@ namespace DemiurgeConsole
                 //HashSet<TreeNode<Point2d>> relevantRivers = new HashSet<TreeNode<Point2d>>();
                 foreach (var system in wtf.RiverSystems)
                 {
-                    SplineTree tree = new SplineTree(system.value, wtf, random);
+                    SplineTree tree = null;
 
                     foreach (var p in system.value)
                     {
                         if (relevantSplines[p.value.y, p.value.x] == null)
                             relevantSplines[p.value.y, p.value.x] = new List<SplineTree>();
-                        relevantSplines[p.value.y, p.value.x].Add(tree);
+                        relevantSplines[p.value.y, p.value.x].Add(tree ?? (tree = new SplineTree(system.value, wtf, random)));
                     }
                 }
             }
@@ -329,10 +329,11 @@ namespace DemiurgeConsole
                 }
 
                 // Crafts the actual river kernel.  Probably not the best way to go about this.
+                // Update: the performance cost of this is OUT OF CONTROL (more expensive than the Brownian Tree).
                 riverbeds = new SparseField2d<float>(SMALL_MAP_RESIZED_LEN, SMALL_MAP_RESIZED_LEN, float.MinValue);
                 foreach (var s in splines)
                 {
-                    var samples = s.GetSamples(32000 / SMALL_MAP_SIDE_LEN);
+                    var samples = s.GetSamplesPerControlPoint(1f * SMALL_MAP_RESIZED_LEN / SMALL_MAP_SIDE_LEN);
 
                     int priorX = int.MinValue;
                     int priorY = int.MinValue;

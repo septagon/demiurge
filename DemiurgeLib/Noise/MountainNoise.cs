@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace DemiurgeLib.Noise
 {
+    /*
+     * Starting scale of 0.005 gives a pretty good result for 32 meters per pixel with a 2048 meter height.
+     */
     public class MountainNoise : Field2d<float>
     {
         public MountainNoise(int width, int height, float startingScale) : this(width, height, startingScale, System.DateTime.Now.Ticks) { }
