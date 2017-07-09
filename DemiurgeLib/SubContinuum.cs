@@ -4,15 +4,15 @@ namespace DemiurgeLib
 {
     public class SubContinuum<T> : IField2d<T>, IContinuum2d<T>
     {
-        private int width;
-        private int height;
+        public int Width { get; private set; }
+        public int Height { get; private set; }
         private IContinuum2d<T> source;
         private Rectangle sourceRegion;
 
         public SubContinuum(int width, int height, IContinuum2d<T> source, Rectangle sourceRegion)
         {
-            this.width = width;
-            this.height = height;
+            this.Width = width;
+            this.Height = height;
             this.source = source;
             this.sourceRegion = sourceRegion;
         }
@@ -21,8 +21,8 @@ namespace DemiurgeLib
         {
             get
             {
-                y = this.sourceRegion.Height * y / this.height + sourceRegion.Top;
-                x = this.sourceRegion.Width * x / this.width + sourceRegion.Left;
+                y = this.sourceRegion.Height * y / this.Height + sourceRegion.Top;
+                x = this.sourceRegion.Width * x / this.Width + sourceRegion.Left;
                 return this.source[y, x];
             }
         }
@@ -32,22 +32,6 @@ namespace DemiurgeLib
             get
             {
                 return this[(float)y, (float)x];
-            }
-        }
-
-        public int Height
-        {
-            get
-            {
-                return this.Height;
-            }
-        }
-
-        public int Width
-        {
-            get
-            {
-                return this.Width;
             }
         }
     }
