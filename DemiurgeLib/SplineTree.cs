@@ -6,18 +6,22 @@ namespace DemiurgeLib
 {
     public class SplineTree
     {
-        // Values stored in spline control points are (in order) X, Y, altitude
+        // Values stored in spline control points are (in order) X, Y, altitude, size
         private List<CenCatRomSpline> splines;
         private IField2d<float> altitudes;
         private Random random;
 
-        private float alpha = 0.5f;
+        private int minSizeForFork;
+        private float alpha;
 
-        public SplineTree(TreeNode<Point2d> tree, IField2d<float> altitudes, Random random)
+        public SplineTree(TreeNode<Point2d> tree, IField2d<float> altitudes, Random random, int minSizeForFork = 3, float alpha = 0.5f)
         {
             this.splines = new List<CenCatRomSpline>();
             this.altitudes = altitudes;
             this.random = random;
+
+            this.minSizeForFork = minSizeForFork;
+            this.alpha = alpha;
 
             var lastList = BuildSplinesRecursively(tree, null);
             lastList.Add(GetParentPoint(lastList));
@@ -29,11 +33,15 @@ namespace DemiurgeLib
 
         private List<vFloat> BuildSplinesRecursively(TreeNode<Point2d> node, vFloat parentPoint)
         {
-            vFloat herePoint = new vFloat(node.value.x + (float)this.random.NextDouble(), node.value.y + (float)this.random.NextDouble(), this.altitudes[node.value.y, node.value.x]);
+            vFloat herePoint = new vFloat(
+                node.value.x + (float)this.random.NextDouble(), // X position in world coordinates
+                node.value.y + (float)this.random.NextDouble(), // Y position in world coordinates
+                this.altitudes[node.value.y, node.value.x],     // altitude in whatever units were used by the "altitudes" input
+                node.Size());                                   // river size, meaning the count of pixels above this.
 
-            if (node.children.Count == 0)
+            if (node.children.Count == 0 || (node.children.Count > 1 && node.Depth() <= minSizeForFork))
             {
-                // Idiotic case, tree has only one element and a spline is rediculous.
+                // Idiotic case, tree has only one element and a spline is ridiculous.
                 if (node.parent == null)
                 {
                     throw new ArgumentException("A tree with only one node cannot be made into a spline tree.");
@@ -62,6 +70,11 @@ namespace DemiurgeLib
                 int minIdx = 0;
                 foreach (var n in node.children)
                 {
+                    if (n.Size() < minSizeForFork)
+                    {
+                        continue;
+                    }
+
                     lsts.Add(BuildSplinesRecursively(n, herePoint));
                     lsts[lsts.Count - 1].Add(herePoint);
 

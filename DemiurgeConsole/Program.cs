@@ -1,4 +1,6 @@
-﻿using System.Threading;
+﻿using System.Drawing;
+using System.Threading;
+using static DemiurgeConsole.Utils;
 
 namespace DemiurgeConsole
 {
@@ -13,7 +15,14 @@ namespace DemiurgeConsole
             //TestScenarios.RunMountainousScenario(1024, 1024, 0.005f);
             //new Thread(TestScenarios.RunPopulationScenario, StackSize).Start();
             //TestScenarios.RunSplineScenario();
-            TestScenarios.RunZoomedInScenario();
+            //TestScenarios.RunZoomedInScenario();
+
+            var wta = new WaterTableArgs();
+            var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "rivers.png"));
+            var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "base_heights.png"));
+            var msmArgs = new MeterScaleMap.Args(waters, heights, null);
+            var msm = new MeterScaleMap(msmArgs);
+            msm.OutputMapForRectangle(new Rectangle(518 + 15, 785 + 45, 64, 64), new Bitmap(1024, 1024));
         }
     }
 }

@@ -92,8 +92,7 @@ namespace DemiurgeLib
                     for (int idx = 0; idx < points.Count; idx++)
                     {
                         float t = 1f * idx / points.Count;
-                        System.Diagnostics.Debug.Assert(floor(t) <= ceiling(t));
-
+                        
                         p = points[idx];
                         
                         val += minGrade;

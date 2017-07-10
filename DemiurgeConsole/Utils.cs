@@ -368,10 +368,10 @@ namespace DemiurgeConsole
             {
                 float value = heights[y, x];
                 Color color;
-                if (value < 0.01f)
+                if (value < 0.05f)
                     color = Color.DodgerBlue;
                 else if (value < 0.1f)
-                    color = Utils.Lerp(Color.Beige, Color.LawnGreen, value / 0.1f);
+                    color = Utils.Lerp(Color.Beige, Color.LawnGreen, (value - 0.05f) / 0.05f);
                 else if (value < 0.4f)
                     color = Utils.Lerp(Color.LawnGreen, Color.ForestGreen, (value - 0.1f) / 0.3f);
                 else if (value < 0.8f)

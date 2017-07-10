@@ -84,6 +84,7 @@
     <Compile Include="Point2d.cs" />
     <Compile Include="PointSet2d.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ReResContinuum.cs" />
     <Compile Include="ReResField.cs" />
     <Compile Include="RowField.cs" />
     <Compile Include="SparseField2d.cs" />

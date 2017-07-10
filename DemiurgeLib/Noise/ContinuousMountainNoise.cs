@@ -14,11 +14,12 @@ namespace DemiurgeLib.Noise
         private float totalWeight;
         private IContinuum2d<float>[] octaves;
 
-        public ContinuousMountainNoise(int width, int height, float scale = 0.005f, int offsetX = 0, int offsetY = 0, Func<int, float> getOctaveWeight = null)
-            : this(width, height, scale, System.DateTime.UtcNow.Ticks, offsetX, offsetY, getOctaveWeight ?? (o => (float)Math.Pow(2, o))) { }
-
-        public ContinuousMountainNoise(int width, int height, float scale, long seed, int offsetX, int offsetY, Func<int, float> getOctaveWeight)
+        public ContinuousMountainNoise(int width, int height, float scale = 0.005f, long seed = 0, int offsetX = 0, int offsetY = 0, Func<int, float> getOctaveWeight = null)
         {
+            // If default args have been used, set to sensible values where appropriate.
+            seed = seed == 0 ? System.DateTime.UtcNow.Ticks : seed;
+            getOctaveWeight = getOctaveWeight ?? (o => (float)Math.Pow(2, o));
+
             this.reciprocalWeights = new float[OCTAVE_COUNT];
             this.totalWeight = 0f;
             this.octaves = new IContinuum2d<float>[OCTAVE_COUNT];

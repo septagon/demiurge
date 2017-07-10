@@ -181,5 +181,14 @@ namespace DemiurgeLib.Common
 
             return sizes;
         }
+
+        public static float GetLineNormalizerForRadius(float radius)
+        {
+            int r = (int)Math.Ceiling(radius);
+            var field = new Field2d<float>(new ConstantField<float>(r * 2 + 1, r * 2 + 1, 0f));
+            for (int x = 0; x < field.Width; x++)
+                field[r, x] = 1f;
+            return 1f / new BlurredField(field, radius)[r, r];
+        }
     }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DemiurgeLib
 {
-    class ContinuousField : IField2d<float>, IContinuum2d<float>
+    public class ContinuousField : IField2d<float>, IContinuum2d<float>
     {
         private IField2d<float> source;
 
