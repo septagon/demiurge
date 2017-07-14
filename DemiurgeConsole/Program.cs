@@ -1,4 +1,8 @@
-﻿using System.Drawing;
+﻿using DemiurgeLib;
+using DemiurgeLib.Common;
+using DemiurgeLib.Noise;
+using System;
+using System.Drawing;
 using System.Threading;
 using static DemiurgeConsole.Utils;
 
@@ -16,6 +20,7 @@ namespace DemiurgeConsole
             //new Thread(TestScenarios.RunPopulationScenario, StackSize).Start();
             //TestScenarios.RunSplineScenario();
             //TestScenarios.RunZoomedInScenario();
+            //TestScenarios.RunPathScenario();
 
             var wta = new WaterTableArgs();
             var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "rivers.png"));

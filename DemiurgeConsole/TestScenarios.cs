@@ -10,6 +10,29 @@ namespace DemiurgeConsole
 {
     public class TestScenarios
     {
+        public static void RunPathScenario()
+        {
+            IField2d<float> costs = new Transformation2d(new Simplex2D(1024, 1024, 0.1f), v => (float)Math.Round(v));
+            var path = Search.FindPath(new Rectangle(0, 0, costs.Width, costs.Height), new DemiurgeLib.Common.Point2d(10, 10), new DemiurgeLib.Common.Point2d(costs.Width - 10, costs.Height - 10), (a, b) =>
+            {
+                if (a.x < 0 || b.x < 0 || a.y < 0 || b.y < 0 ||
+                    a.x >= costs.Width || b.x >= costs.Width | a.y >= costs.Height || b.y >= costs.Height)
+                    return float.PositiveInfinity;
+
+                float cost = Point2d.Distance(a, b);
+                cost += 100f * Math.Abs(costs[a.y, a.x] - costs[b.y, b.x]); // Steep slope penalty.
+                cost += (float)Math.Pow(10f * costs[b.y, b.x], 2);          // High altitude penalty.
+                return cost;
+            });
+            Bitmap bmp = new Bitmap(costs.Width, costs.Height);
+            for (int y = 0; y < costs.Height; y++)
+                for (int x = 0; x < costs.Width; x++)
+                    bmp.SetPixel(x, y, Color.FromArgb((int)(255 * costs[y, x]), (int)(255 * costs[y, x]), (int)(255 * costs[y, x])));
+            foreach (var pnt in path)
+                bmp.SetPixel(pnt.x, pnt.y, Color.Red);
+            bmp.Save("C:\\Users\\Justin Murray\\Desktop\\path_test.png");
+        }
+
         public static void RunSplineScenario()
         {
             Random r = new Random();

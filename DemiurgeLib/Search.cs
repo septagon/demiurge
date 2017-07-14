@@ -1,42 +1,52 @@
 ﻿using DemiurgeLib.Common;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Drawing;
 
 namespace DemiurgeLib
 {
     public class Search
     {
-        public static List<Point2d> FindPath(Point2d from, Point2d to, Func<Point2d, Point2d, float> getCostOfStep = null, Func<Point2d, Point2d, float> estimateCostOfStep = null)
+        private struct CostedPoint : IComparable<CostedPoint>
+        {
+            public Point2d point;
+            public float cost;
+
+            public int CompareTo(CostedPoint other)
+            {
+                return cost.CompareTo(other.cost);
+            }
+        }
+
+        public static List<Point2d> FindPath(Rectangle area, Point2d from, Point2d to, Func<Point2d, Point2d, float> getCostOfStep = null, Func<Point2d, Point2d, float> estimateCostOfStep = null)
         {
             getCostOfStep = getCostOfStep ?? Point2d.Distance;
             estimateCostOfStep = estimateCostOfStep ?? Point2d.Distance;
+            
+            Field2d<float> visited = new Field2d<float>(new ConstantField<float>(area.Width, area.Height, float.NaN));
+            visited[from.y, from.x] = 0f;
 
-            Dictionary<Point2d, float> visited = new Dictionary<Point2d, float>();
-            visited.Add(from, 0f);
+            BinaryHeap<CostedPoint> toVisit = new BinaryHeap<CostedPoint>();
+            toVisit.Push(new CostedPoint() { point = from, cost = visited[from.y, from.x] + estimateCostOfStep(from, to) });
 
-            SortedList<float, Point2d> toVisit = new SortedList<float, Point2d>();
-            toVisit.Add(visited[from] + estimateCostOfStep(from, to), from);
-
-            Dictionary<Point2d, Point2d> cameFrom = new Dictionary<Point2d, Point2d>();
-            cameFrom.Add(from, from);
+            Field2d<Point2d> cameFrom = new Field2d<Point2d>(new ConstantField<Point2d>(area.Width, area.Height, new Point2d(-1, -1)));
+            cameFrom[from.y, from.x] = from;
 
             while (toVisit.Count > 0)
             {
-                Point2d curr = toVisit.Values[0];
-                toVisit.RemoveAt(0);
-                // next has already been added to the visited list, no need to add it again.
-
+                var curr = toVisit.Pop().point;
+                
                 for (int j = -1; j <= 1; j++)
                 {
                     for (int i = -1; i <= 1; i++)
                     {
                         if (i == 0 && j == 0)
                             continue;
-
+                        
                         Point2d next = new Point2d(curr.x + i, curr.y + j);
+
+                        if (next.x <= area.Left || next.x >= area.Right || next.y <= area.Top || next.y >= area.Bottom)
+                            continue;
 
                         if (next == to)
                         {
@@ -44,24 +54,25 @@ namespace DemiurgeLib
                             path.Add(next);
                             path.Add(curr);
 
-                            while (cameFrom[curr] != curr)
+                            Point2d it = curr;
+                            while (cameFrom[it.y, it.x] != it)
                             {
-                                curr = cameFrom[curr];
-                                path.Add(curr);
+                                it = cameFrom[it.y, it.x];
+                                path.Add(it);
                             }
 
                             path.Reverse();
                             return path;
                         }
 
-                        float cost = getCostOfStep(curr, next);
+                        float cost = visited[curr.y, curr.x] + getCostOfStep(curr, next);
 
-                        if (!visited.ContainsKey(next) || visited[next] > cost)
+                        if (float.IsNaN(visited[next.y, next.x]) || visited[next.y, next.x] > cost)
                         {
-                            visited[next] = cost;
-                            cameFrom[next] = curr;
-                            //toVisit.Add(cost + estimateCostOfStep(next, to), next); // TODO: Guard against double-adding here?
-                            toVisit[cost + estimateCostOfStep(next, to)] = next;
+                            visited[next.y, next.x] = cost;
+                            cameFrom[next.y, next.x] = curr;
+                            
+                            toVisit.Push(new CostedPoint() { point = next, cost = cost + estimateCostOfStep(next, to) });
                         }
                     }
                 }

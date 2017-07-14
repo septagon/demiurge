@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseSpline.cs" />
+    <Compile Include="BinaryHeap.cs" />
     <Compile Include="BlurredField.cs" />
     <Compile Include="BrownianTree.cs" />
     <Compile Include="CenCatRomSpline.cs" />
@@ -87,6 +88,7 @@
     <Compile Include="ReResContinuum.cs" />
     <Compile Include="ReResField.cs" />
     <Compile Include="RowField.cs" />
+    <Compile Include="Search.cs" />
     <Compile Include="SparseField2d.cs" />
     <Compile Include="SplineTree.cs" />
     <Compile Include="SubContinuum.cs" />
