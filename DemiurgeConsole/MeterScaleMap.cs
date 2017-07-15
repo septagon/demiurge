@@ -34,11 +34,11 @@ namespace DemiurgeConsole
             public float baseHeightMaxInMeters = 2000f;
             public float mountainHeightMaxInMeters = 2000f;
             public float valleyRadiusInMeters = 5000f;
-            public float canyonRadiusInMeters = 2000f;
+            public float canyonRadiusInMeters = 1000f;
             public float riverCapacityToMetersWideScalar = 0.5f;
 
-            public float valleyStrength = 0.5f;
-            public float canyonStrength = 0.2f;
+            public float valleyStrength = 0.7f;
+            public float canyonStrength = 0.99f;
 
             public int hydroSensitivity = 8;
             public float hydroShoreThreshold = 0.5f;
@@ -60,9 +60,9 @@ namespace DemiurgeConsole
         private Args args;
 
         private WaterTableField wtf;
+        private ContinuousField distanceToWater;
         private SparseField2d<List<SplineTree>> splines;
         private ContinuousMountainNoise mountainNoise;
-        private ContinuousField valleyDamping;
 
         public MeterScaleMap(Args args)
         {
@@ -71,9 +71,9 @@ namespace DemiurgeConsole
             Random random = new Random((int)this.args.seed);
 
             this.wtf = InitializeWaterTableField(this.args, random);
+            this.distanceToWater = InitializeDistanceFromWater(this.wtf, this.args);
             this.splines = InitializeSplines(this.wtf, random);
             this.mountainNoise = InitializeMountainNoise(this.wtf, this.args.seed, this.args.metersPerPixel);
-            this.valleyDamping = InitializeValleyDamping(this.wtf, this.args);
 
             //string outputFolder = "C:\\Users\\Justin Murray\\Desktop\\";
             //var bmp = new Bitmap(wtf.Width, wtf.Height);
@@ -126,6 +126,20 @@ namespace DemiurgeConsole
             return wtf;
         }
 
+        private static ContinuousField InitializeDistanceFromWater(WaterTableField wtf, Args args)
+        {
+            var dists = new Transformation2d<Point2d, float>(wtf.DrainageField, (x, y, p) =>
+            {
+                if (wtf.HydroField[y, x] != HydrologicalField.LandType.Land)
+                    return 0f;
+
+                // We subtract 1 to compute the distance as water-adjacent as well as on-the-water.
+                // This is a slight bit of a hack, but helps account for problems at varying resolutions.
+                return args.metersPerPixel * (Point2d.Distance(new Point2d(x, y), p) - 1f);
+            });
+            return new ContinuousField(dists);
+        }
+
         private static SparseField2d<List<SplineTree>> InitializeSplines(WaterTableField wtf, Random random)
         {
             var splines = new SparseField2d<List<SplineTree>>(wtf.Width, wtf.Height, null);
@@ -149,17 +163,6 @@ namespace DemiurgeConsole
         private static ContinuousMountainNoise InitializeMountainNoise(WaterTableField wtf, long seed, float metersPerPixel)
         {
             return new ContinuousMountainNoise(wtf.Width, wtf.Height, GetMountainNoiseStartingScale(metersPerPixel), seed);
-        }
-
-        private static ContinuousField InitializeValleyDamping(WaterTableField wtf, Args args)
-        {
-            var hasWater = new Transformation2d<HydrologicalField.LandType, float>(wtf.HydroField, t => t == HydrologicalField.LandType.Land ? 0f : 1f);
-
-            float radius = args.valleyRadiusInMeters / args.metersPerPixel;
-            float normalizer = BlurredField.GetLineNormalizerForRadius(radius);
-            var valleyDamping = new Transformation2d(new BlurredField(hasWater, radius), v => args.valleyStrength * normalizer * v);
-
-            return new ContinuousField(valleyDamping);
         }
 
         private List<SplineTree> GetSplinesInRectangle(Rectangle rect)
@@ -234,17 +237,14 @@ namespace DemiurgeConsole
         {
             float metersPerPixel = this.args.metersPerPixel * rect.Width / riverbeds.Width;
 
-            IField2d<float> valleys = new BlurredField(new SubContinuum<float>(riverbeds.Width, riverbeds.Height, this.valleyDamping, rect));
+            IField2d<float> dists = new BlurredField(new SubContinuum<float>(riverbeds.Width, riverbeds.Height, this.distanceToWater, rect), riverbeds.Width / rect.Width);
 
-            IField2d<float> canyons;
+            return new Transformation2d(dists, d =>
             {
-                var hasWater = new Transformation2d(riverbeds, v => v == float.MaxValue ? 0f : 1f);
-                float radius = this.args.canyonRadiusInMeters / metersPerPixel;
-                float normalizer = BlurredField.GetLineNormalizerForRadius(radius);
-                canyons = new Transformation2d(new BlurredField(hasWater, radius), v => v * normalizer * this.args.canyonStrength);
-            }
-
-            return new Transformation2d<float, float, float>(valleys, canyons, Math.Max);
+                float valleyFactor = 1f - d / this.args.valleyRadiusInMeters;
+                float canyonFactor = 1f - (float)Math.Pow(d / this.args.canyonRadiusInMeters, 2f);
+                return Math.Max(Math.Max(valleyFactor * this.args.valleyStrength, canyonFactor * this.args.canyonStrength), 0f);
+            });
         }
 
         /// <summary>
