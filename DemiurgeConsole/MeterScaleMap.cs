@@ -37,7 +37,7 @@ namespace DemiurgeConsole
             public float canyonRadiusInMeters = 1000f;
             public float riverCapacityToMetersWideScalar = 0.5f;
 
-            public float valleyStrength = 0.7f;
+            public float valleyStrength = 0.8f;
             public float canyonStrength = 0.999f;
 
             public int hydroSensitivity = 8;
@@ -74,12 +74,6 @@ namespace DemiurgeConsole
             this.distanceToWater = InitializeDistanceFromWater(this.wtf, this.args);
             this.splines = InitializeSplines(this.wtf, random);
             this.mountainNoise = InitializeMountainNoise(this.wtf, this.args.seed, this.args.metersPerPixel);
-
-            //string outputFolder = "C:\\Users\\Justin Murray\\Desktop\\";
-            //var bmp = new Bitmap(wtf.Width, wtf.Height);
-            //Utils.OutputAsColoredMap(this.wtf, this.wtf.RiverSystems, bmp, outputFolder + "colors.png");
-            //Utils.OutputField(mountainNoise, bmp, outputFolder + "mountains.png");
-            //Utils.OutputField(valleyDamping, bmp, outputFolder + "damping.png");
         }
 
         public void OutputMapForRectangle(Rectangle rect, Bitmap bmp)
@@ -88,7 +82,7 @@ namespace DemiurgeConsole
             IField2d<float> mountains = new SubContinuum<float>(bmp.Width, bmp.Height, this.mountainNoise, rect);
             // TODO: hills?
 
-            IField2d<float> riverbeds = GetRiverFieldForRectangle(bmp.Width, bmp.Height, rect, /*TODO: Anything but this.*/2);
+            IField2d<float> riverbeds = GetRiverFieldForRectangle(bmp.Width, bmp.Height, rect, 200);
             IField2d<float> damping = GetDampingFieldForRectangle(rect, riverbeds);
 
             Utils.OutputField(new NormalizedComposition2d<float>(waterTable), bmp, "C:\\Users\\Justin Murray\\Desktop\\water.png");
@@ -184,8 +178,13 @@ namespace DemiurgeConsole
         }
 
         // Gets the exact river heights for the given rectangle. Does NOT produce a valley or canyon kernel.
-        private IField2d<float> GetRiverFieldForRectangle(int newWidth, int newHeight, Rectangle sourceRect, int riverWidthInPixels)
+        private IField2d<float> GetRiverFieldForRectangle(int newWidth, int newHeight, Rectangle sourceRect, float riverWidthInMeters)
         {
+            float metersPerPixel = this.args.metersPerPixel * sourceRect.Width / newWidth;
+
+            // TODO: This entire parameter and behavior should me removed in favor of widths defined by strengths.
+            int riverWidthInPixels = (int)Math.Round(riverWidthInMeters / metersPerPixel);
+
             var localSplines = GetSplinesInRectangle(sourceRect);
 
             var riverField = new Field2d<float>(new ConstantField<float>(newWidth, newHeight, float.PositiveInfinity));
@@ -237,8 +236,13 @@ namespace DemiurgeConsole
         {
             float metersPerPixel = this.args.metersPerPixel * rect.Width / riverbeds.Width;
             
-            IField2d<float> dists = new BlurredField(new SubContinuum<float>(riverbeds.Width, riverbeds.Height, this.distanceToWater, rect), riverbeds.Width / rect.Width);
+            IField2d<float> upres = new BlurredField(new SubContinuum<float>(riverbeds.Width, riverbeds.Height, this.distanceToWater, rect), riverbeds.Width / rect.Width);
+            IField2d<float> manhats = new ScaleTransform(new ManhattanDistanceField(new Transformation2d<float, bool>(riverbeds, r => !float.IsPositiveInfinity(r))), metersPerPixel);
 
+            IField2d<float> dists = new BlurredField(new Transformation2d<float, float, float>(upres, manhats, Math.Min), 500f / metersPerPixel);
+
+            Utils.OutputField(new NormalizedComposition2d<float>(dists), new Bitmap(dists.Width, dists.Height), "C:\\Users\\Justin Murray\\Desktop\\dists.png");
+            
             return new Transformation2d(dists, d =>
             {
                 float valleyFactor = 1f - d / this.args.valleyRadiusInMeters;

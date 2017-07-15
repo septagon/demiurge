@@ -200,31 +200,36 @@ namespace DemiurgeLib.Common
             return riverForest;
         }
 
-        public static bool AreWaterwaysLegalForField(this List<TreeNode<Point2d>> waterways, IField2d<float> field)
+        public static bool AreWaterwaysLegalForField(this List<TreeNode<Point2d>> waterways, IField2d<float> field, float eps = 0.1f)
         {
+            int violations = 0;
+
             foreach (var waterway in waterways)
             { 
                 foreach (var node in waterway)
                 {
                     if (node.value.x < 0 || node.value.x >= field.Width)
                     {
-                        return false;
+                        violations++;
+                        continue;
                     }
 
                     if (node.value.y < 0 || node.value.y >= field.Height)
                     {
-                        return false;
+                        violations++;
+                        continue;
                     }
 
                     if (node.parent != null && 
-                        field[node.value.y, node.value.x] < field[node.parent.value.y, node.parent.value.x])
+                        field[node.parent.value.y, node.parent.value.x] - field[node.value.y, node.value.x] > eps)
                     {
-                        return false;
+                        violations++;
+                        continue;
                     }
                 }
             }
 
-            return true;
+            return violations == 0;
         }
         
         public static void EnforceWaterwaysLegalForField(this List<TreeNode<Point2d>> waterways, Field2d<float> field, float minIncrement = 0f)
