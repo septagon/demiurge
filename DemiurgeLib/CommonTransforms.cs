@@ -52,4 +52,53 @@ namespace DemiurgeLib.Common
     {
         public ConstantField(int width, int height, T value) : base(width, height, (x, y) => value) { }
     }
+
+    public class ManhattanDistanceField : Field2d<float>
+    {
+        public ManhattanDistanceField(IField2d<bool> isTarget) 
+            : base(new Transformation2d<bool, float>(isTarget, b => b ? 0f : float.PositiveInfinity))
+        {
+            float lastWater;
+
+            for (int y = 0; y < this.Height; y++)
+            {
+                lastWater = float.PositiveInfinity;
+                for (int x = 0; x < this.Width; x++)
+                {
+                    lastWater = Math.Min(lastWater + 1f, this[y, x]);
+                    this[y, x] = lastWater;
+                }
+            }
+
+            for (int y = 0; y < this.Height; y++)
+            {
+                lastWater = float.PositiveInfinity;
+                for (int x = this.Width - 1; x >= 0; x--)
+                {
+                    lastWater = Math.Min(lastWater + 1f, this[y, x]);
+                    this[y, x] = lastWater;
+                }
+            }
+
+            for (int x = 0; x < this.Width; x++)
+            {
+                lastWater = float.PositiveInfinity;
+                for (int y = 0; y < this.Height; y++)
+                {
+                    lastWater = Math.Min(lastWater + 1f, this[y, x]);
+                    this[y, x] = lastWater;
+                }
+            }
+
+            for (int x = 0; x < this.Width; x++)
+            {
+                lastWater = float.PositiveInfinity;
+                for (int y = this.Height - 1; y >= 0; y--)
+                {
+                    lastWater = Math.Min(lastWater + 1f, this[y, x]);
+                    this[y, x] = lastWater;
+                }
+            }
+        }
+    }
 }

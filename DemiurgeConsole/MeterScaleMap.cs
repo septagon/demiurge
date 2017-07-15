@@ -38,7 +38,7 @@ namespace DemiurgeConsole
             public float riverCapacityToMetersWideScalar = 0.5f;
 
             public float valleyStrength = 0.7f;
-            public float canyonStrength = 0.99f;
+            public float canyonStrength = 0.999f;
 
             public int hydroSensitivity = 8;
             public float hydroShoreThreshold = 0.5f;
@@ -93,7 +93,7 @@ namespace DemiurgeConsole
 
             Utils.OutputField(new NormalizedComposition2d<float>(waterTable), bmp, "C:\\Users\\Justin Murray\\Desktop\\water.png");
             Utils.OutputField(mountains, bmp, "C:\\Users\\Justin Murray\\Desktop\\mountain.png");
-            Utils.OutputField(new NormalizedComposition2d<float>(riverbeds), bmp, "C:\\Users\\Justin Murray\\Desktop\\river.png");
+            Utils.OutputField(new Transformation2d(riverbeds, v => float.IsPositiveInfinity(v) ? 1f : 0f), bmp, "C:\\Users\\Justin Murray\\Desktop\\river.png");
             Utils.OutputField(damping, bmp, "C:\\Users\\Justin Murray\\Desktop\\damp.png");
 
             IField2d<float> heightmap;
@@ -188,7 +188,7 @@ namespace DemiurgeConsole
         {
             var localSplines = GetSplinesInRectangle(sourceRect);
 
-            var riverField = new Field2d<float>(new ConstantField<float>(newWidth, newHeight, float.MaxValue));
+            var riverField = new Field2d<float>(new ConstantField<float>(newWidth, newHeight, float.PositiveInfinity));
             foreach (var s in localSplines)
             {
                 var samples = s.GetSamplesPerControlPoint(1f * newWidth / sourceRect.Width);
@@ -236,7 +236,7 @@ namespace DemiurgeConsole
         private IField2d<float> GetDampingFieldForRectangle(Rectangle rect, IField2d<float> riverbeds)
         {
             float metersPerPixel = this.args.metersPerPixel * rect.Width / riverbeds.Width;
-
+            
             IField2d<float> dists = new BlurredField(new SubContinuum<float>(riverbeds.Width, riverbeds.Height, this.distanceToWater, rect), riverbeds.Width / rect.Width);
 
             return new Transformation2d(dists, d =>
