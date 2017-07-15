@@ -26,6 +26,7 @@ namespace DemiurgeConsole
             var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "rivers.png"));
             var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "base_heights.png"));
             var msmArgs = new MeterScaleMap.Args(waters, heights, null);
+            msmArgs.seed = System.DateTime.UtcNow.Ticks;
             var msm = new MeterScaleMap(msmArgs);
             msm.OutputMapForRectangle(new Rectangle(518 + 15, 785 + 45, 64, 64), new Bitmap(1024, 1024));
         }

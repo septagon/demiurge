@@ -35,7 +35,7 @@ namespace DemiurgeConsole
             public float mountainHeightMaxInMeters = 2000f;
             public float valleyRadiusInMeters = 5000f;
             public float canyonRadiusInMeters = 1000f;
-            public float riverCapacityToMetersWideScalar = 0.5f;
+            public float riverCapacityToMetersWideScalar = 1f;
 
             public float valleyStrength = 0.8f;
             public float canyonStrength = 0.999f;
@@ -82,13 +82,8 @@ namespace DemiurgeConsole
             IField2d<float> mountains = new SubContinuum<float>(bmp.Width, bmp.Height, this.mountainNoise, rect);
             // TODO: hills?
 
-            IField2d<float> riverbeds = GetRiverFieldForRectangle(bmp.Width, bmp.Height, rect, 200);
+            IField2d<float> riverbeds = GetRiverFieldForRectangle(bmp.Width, bmp.Height, rect);
             IField2d<float> damping = GetDampingFieldForRectangle(rect, riverbeds);
-
-            Utils.OutputField(new NormalizedComposition2d<float>(waterTable), bmp, "C:\\Users\\Justin Murray\\Desktop\\water.png");
-            Utils.OutputField(mountains, bmp, "C:\\Users\\Justin Murray\\Desktop\\mountain.png");
-            Utils.OutputField(new Transformation2d(riverbeds, v => float.IsPositiveInfinity(v) ? 1f : 0f), bmp, "C:\\Users\\Justin Murray\\Desktop\\river.png");
-            Utils.OutputField(damping, bmp, "C:\\Users\\Justin Murray\\Desktop\\damp.png");
 
             IField2d<float> heightmap;
             {
@@ -101,8 +96,7 @@ namespace DemiurgeConsole
             }
 
             // TODO: DEBUG
-            Utils.OutputField(new NormalizedComposition2d<float>(heightmap), bmp, "C:\\Users\\Justin Murray\\Desktop\\combined.png");
-            OutputAsOBJ(heightmap, GetSplinesInRectangle(rect), rect, bmp, "C:\\Users\\Justin Murray\\Desktop\\");
+            OutputAsOBJ(heightmap, new Transformation2d<float, bool>(riverbeds, r => !float.IsPositiveInfinity(r)), rect, bmp, "C:\\Users\\Justin Murray\\Desktop\\");
         }
 
         private static WaterTableField InitializeWaterTableField(Args args, Random random)
@@ -178,19 +172,16 @@ namespace DemiurgeConsole
         }
 
         // Gets the exact river heights for the given rectangle. Does NOT produce a valley or canyon kernel.
-        private IField2d<float> GetRiverFieldForRectangle(int newWidth, int newHeight, Rectangle sourceRect, float riverWidthInMeters)
+        private IField2d<float> GetRiverFieldForRectangle(int newWidth, int newHeight, Rectangle sourceRect)
         {
             float metersPerPixel = this.args.metersPerPixel * sourceRect.Width / newWidth;
-
-            // TODO: This entire parameter and behavior should me removed in favor of widths defined by strengths.
-            int riverWidthInPixels = (int)Math.Round(riverWidthInMeters / metersPerPixel);
 
             var localSplines = GetSplinesInRectangle(sourceRect);
 
             var riverField = new Field2d<float>(new ConstantField<float>(newWidth, newHeight, float.PositiveInfinity));
             foreach (var s in localSplines)
             {
-                var samples = s.GetSamplesPerControlPoint(1f * newWidth / sourceRect.Width);
+                var samples = s.GetSamplesPerControlPoint(2f * newWidth / sourceRect.Width);
 
                 int priorX = int.MinValue;
                 int priorY = int.MinValue;
@@ -212,6 +203,8 @@ namespace DemiurgeConsole
 
                     if (0 <= x && x < newWidth && 0 <= y && y < newHeight)
                     {
+                        int riverWidthInPixels = (int)Math.Round(this.args.riverCapacityToMetersWideScalar * p[3] / metersPerPixel);
+                        
                         for (int j = -riverWidthInPixels; j <= riverWidthInPixels; j++)
                         {
                             for (int i = -riverWidthInPixels; i <= riverWidthInPixels; i++)
@@ -239,9 +232,7 @@ namespace DemiurgeConsole
             IField2d<float> upres = new BlurredField(new SubContinuum<float>(riverbeds.Width, riverbeds.Height, this.distanceToWater, rect), riverbeds.Width / rect.Width);
             IField2d<float> manhats = new ScaleTransform(new ManhattanDistanceField(new Transformation2d<float, bool>(riverbeds, r => !float.IsPositiveInfinity(r))), metersPerPixel);
 
-            IField2d<float> dists = new BlurredField(new Transformation2d<float, float, float>(upres, manhats, Math.Min), 500f / metersPerPixel);
-
-            Utils.OutputField(new NormalizedComposition2d<float>(dists), new Bitmap(dists.Width, dists.Height), "C:\\Users\\Justin Murray\\Desktop\\dists.png");
+            IField2d<float> dists = new BlurredField(new Transformation2d<float, float, float>(upres, manhats, Math.Min), 200f / metersPerPixel);
             
             return new Transformation2d(dists, d =>
             {
@@ -263,7 +254,7 @@ namespace DemiurgeConsole
             return steepness * 0.00016f * metersPerPixel;
         }
 
-        public void OutputAsOBJ(IField2d<float> heights, IEnumerable<SplineTree> rivers, Rectangle rect, Bitmap bmp, string outputDir, string outputName = "terrain")
+        public void OutputAsOBJ(IField2d<float> heights, IField2d<bool> riverField, Rectangle rect, Bitmap bmp, string outputDir, string outputName = "terrain")
         {
             using (var objWriter = new StreamWriter(File.OpenWrite(outputDir + outputName + ".obj")))
             {
@@ -358,7 +349,7 @@ namespace DemiurgeConsole
             {
                 float value = heights[y, x] / (this.args.baseHeightMaxInMeters + this.args.mountainHeightMaxInMeters);
                 Color color;
-                if (value < 0.05f)
+                if (riverField[y, x] || value < 0.05f)
                     color = Color.DodgerBlue;
                 else if (value < 0.1f)
                     color = Utils.Lerp(Color.Beige, Color.LawnGreen, (value - 0.05f) / 0.05f);
@@ -371,49 +362,6 @@ namespace DemiurgeConsole
                 else
                     color = Color.White;
                 bmp.SetPixel(x, y, color);
-            }
-
-            foreach (var s in rivers)
-            {
-                var samples = s.GetSamplesFromAll(32000 / rect.Width);
-
-                int priorX = int.MinValue;
-                int priorY = int.MinValue;
-
-                foreach (var p in samples)
-                {
-                    int x = (int)((p[0] - rect.Left) * heights.Width / rect.Width);
-                    int y = (int)((p[1] - rect.Top) * heights.Height / rect.Height);
-
-                    if (x == priorX && y == priorY)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        priorX = x;
-                        priorY = y;
-                    }
-
-                    if (0 <= x && x < heights.Width && 0 <= y && y < heights.Height)
-                    {
-                        int r = 5 * 32 / rect.Width;
-
-                        for (int j = -r; j <= r; j++)
-                        {
-                            for (int i = -r; i <= r; i++)
-                            {
-                                int xx = x + i;
-                                int yy = y + j;
-
-                                if (0 <= xx && xx < heights.Width && 0 <= yy && yy < heights.Height)
-                                {
-                                    bmp.SetPixel(xx, yy, Color.DodgerBlue);
-                                }
-                            }
-                        }
-                    }
-                }
             }
             bmp.Save(outputDir + outputName + ".jpg");
         }
