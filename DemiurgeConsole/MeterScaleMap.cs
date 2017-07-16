@@ -59,7 +59,7 @@ namespace DemiurgeConsole
 
         private Args args;
 
-        private WaterTableField wtf;
+        public WaterTableField wtf; // TODO DEBUG: shouldn't be public.
         private ContinuousField distanceToWater;
         private SparseField2d<List<SplineTree>> splines;
         private ContinuousMountainNoise mountainNoise;
@@ -76,27 +76,43 @@ namespace DemiurgeConsole
             this.mountainNoise = InitializeMountainNoise(this.wtf, this.args.seed, this.args.metersPerPixel);
         }
 
-        public void OutputMapForRectangle(Rectangle rect, Bitmap bmp)
+        public void OutputMapForRectangle(Rectangle sourceRect, Bitmap bmp, string dir = "C:\\Users\\Justin Murray\\Desktop\\terrain\\", string name = "submap")
         {
-            IField2d<float> waterTable = new BlurredField(new SubContinuum<float>(bmp.Width, bmp.Height, new ContinuousField(this.wtf), rect), 0.5f * bmp.Width / rect.Width);
-            IField2d<float> mountains = new SubContinuum<float>(bmp.Width, bmp.Height, this.mountainNoise, rect);
+            // Hack that adds buffers, use to work around unidentified bugs and differences of behavior near edges.
+            Rectangle rect = new Rectangle(
+                sourceRect.Left - sourceRect.Width / 20,
+                sourceRect.Top - sourceRect.Height / 20,
+                sourceRect.Width * 11 / 10,
+                sourceRect.Height * 11 / 10);
+
+            int width = (int)Math.Ceiling(bmp.Width * 1.1f);
+            int height = (int)Math.Ceiling(bmp.Height * 1.1f);
+
+            IField2d<float> waterTable = new BlurredField(new SubContinuum<float>(width, height, new ContinuousField(this.wtf), rect), 0.5f * width / rect.Width);
+            IField2d<float> mountains = new SubContinuum<float>(width, height, this.mountainNoise, rect);
             // TODO: hills?
 
-            IField2d<float> riverbeds = GetRiverFieldForRectangle(bmp.Width, bmp.Height, rect);
+            IField2d<float> riverbeds = GetRiverFieldForRectangle(width, height, rect);
             IField2d<float> damping = GetDampingFieldForRectangle(rect, riverbeds);
 
             IField2d<float> heightmap;
             {
                 IField2d<float> dampedNoise = new Transformation2d<float, float, float>(mountains, damping, (m, d) => Math.Max(1f - d, 0f) * m);
-                IField2d<float> scaledMountains = new ScaleTransform(dampedNoise, this.args.baseHeightMaxInMeters);
+                
+                // TODO: Allow mountains at low base elevation?
+                IField2d<float> groundHeight = new Transformation2d<float, float, float>(waterTable, dampedNoise, (w, m) => w + m * Math.Min(w, args.mountainHeightMaxInMeters));
 
-                IField2d<float> groundHeight = new Composition2d<float>(waterTable, scaledMountains);
+                // TODO: Erode the groundHeight.
 
                 heightmap = new Transformation2d<float, float, float>(groundHeight, riverbeds, Math.Min);
             }
 
+            IField2d<float> riverField = new SubField<float>(riverbeds, new Rectangle(bmp.Width / 20, bmp.Height / 20, bmp.Width, bmp.Height));
+            IField2d<float> heightField = new SubField<float>(heightmap, new Rectangle(bmp.Width / 20, bmp.Height / 20, bmp.Width, bmp.Height));
+
             // TODO: DEBUG
-            OutputAsOBJ(heightmap, new Transformation2d<float, bool>(riverbeds, r => !float.IsPositiveInfinity(r)), rect, bmp, "C:\\Users\\Justin Murray\\Desktop\\");
+            //OutputAsOBJ(heightField, new Transformation2d<float, bool>(riverField, r => !float.IsPositiveInfinity(r)), sourceRect, bmp, dir, name);
+            OutputAsPreciseHeightmap(heightField, riverField, dir + name + ".png");
         }
 
         private static WaterTableField InitializeWaterTableField(Args args, Random random)
@@ -203,11 +219,13 @@ namespace DemiurgeConsole
 
                     if (0 <= x && x < newWidth && 0 <= y && y < newHeight)
                     {
-                        int riverWidthInPixels = (int)Math.Round(this.args.riverCapacityToMetersWideScalar * p[3] / metersPerPixel);
+                        float riverRadiusInPixels = this.args.riverCapacityToMetersWideScalar * p[3] / metersPerPixel / 2f;
+                        int l = -(int)(riverRadiusInPixels + 0.5f);
+                        int r = (int)riverRadiusInPixels;
                         
-                        for (int j = -riverWidthInPixels; j <= riverWidthInPixels; j++)
+                        for (int j = l; j <= r; j++)
                         {
-                            for (int i = -riverWidthInPixels; i <= riverWidthInPixels; i++)
+                            for (int i = l; i <= r; i++)
                             {
                                 int xx = x + i;
                                 int yy = y + j;
@@ -252,6 +270,29 @@ namespace DemiurgeConsole
         private static float GetMountainNoiseStartingScale(float metersPerPixel, float steepness = 1f)
         {
             return steepness * 0.00016f * metersPerPixel;
+        }
+
+        public void OutputAsPreciseHeightmap(IField2d<float> heights, IField2d<float> rivers, string outputPath)
+        {
+            Bitmap bmp = new Bitmap(heights.Width, heights.Height);
+
+            for (int y = 0; y < heights.Height; y++)
+            {
+                for (int x = 0; x < heights.Width; x++)
+                {
+                    float h = Math.Max(heights[y, x], 0f);
+                    float r = Math.Max(rivers[y, x], 0f);
+                    
+                    int m1k = (int)(h / 1000);
+                    int m10 = (int)((h - m1k * 1000) / 10);
+                    int m_1 = (int)((h - m1k * 1000 - m10 * 10) * 10);
+                    int w = float.IsPositiveInfinity(r) ? 255 : 128;
+
+                    bmp.SetPixel(x, y, Color.FromArgb(w, m1k, m10, m_1));
+                }
+            }
+
+            bmp.Save(outputPath);
         }
 
         public void OutputAsOBJ(IField2d<float> heights, IField2d<bool> riverField, Rectangle rect, Bitmap bmp, string outputDir, string outputName = "terrain")
