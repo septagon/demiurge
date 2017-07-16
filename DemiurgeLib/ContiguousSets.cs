@@ -197,6 +197,34 @@ namespace DemiurgeLib.Common
                         hydroField[pt.y + 0, pt.x + 1] == HydrologicalField.LandType.Ocean;
                 }));
             }
+
+            // Add an extra node to the root of each river that actually extends into the ocean,
+            // for completeness's sake.
+            for (int idx = 0; idx < riverForest.Count; idx++)
+            {
+                Point2d pt = riverForest[idx].value;
+                if (hydroField[pt.y + 1, pt.x + 1] == HydrologicalField.LandType.Ocean)
+                    pt = new Point2d(pt.x + 1, pt.y + 1);
+                else if (hydroField[pt.y + 1, pt.x + 0] == HydrologicalField.LandType.Ocean)
+                    pt = new Point2d(pt.x + 0, pt.y + 1);
+                else if (hydroField[pt.y + 1, pt.x - 1] == HydrologicalField.LandType.Ocean)
+                    pt = new Point2d(pt.x - 1, pt.y + 1);
+                else if (hydroField[pt.y + 0, pt.x - 1] == HydrologicalField.LandType.Ocean)
+                    pt = new Point2d(pt.x - 1, pt.y + 0);
+                else if (hydroField[pt.y - 1, pt.x - 1] == HydrologicalField.LandType.Ocean)
+                    pt = new Point2d(pt.x - 1, pt.y - 1);
+                else if (hydroField[pt.y - 1, pt.x + 0] == HydrologicalField.LandType.Ocean)
+                    pt = new Point2d(pt.x + 0, pt.y - 1);
+                else if (hydroField[pt.y - 1, pt.x + 1] == HydrologicalField.LandType.Ocean)
+                    pt = new Point2d(pt.x + 1, pt.y - 1);
+                else if (hydroField[pt.y + 0, pt.x + 1] == HydrologicalField.LandType.Ocean)
+                    pt = new Point2d(pt.x + 1, pt.y + 1);
+                
+                var newRoot = new TreeNode<Point2d>(pt);
+                riverForest[idx].SetParent(newRoot);
+                riverForest[idx] = newRoot;
+            }
+
             return riverForest;
         }
 
