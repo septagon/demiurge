@@ -59,7 +59,7 @@ namespace DemiurgeConsole
 
         private Args args;
 
-        public WaterTableField wtf; // TODO DEBUG: shouldn't be public.
+        private WaterTableField wtf;
         private ContinuousField distanceToWater;
         private SparseField2d<List<SplineTree>> splines;
         private ContinuousMountainNoise mountainNoise;
@@ -74,6 +74,41 @@ namespace DemiurgeConsole
             this.distanceToWater = InitializeDistanceFromWater(this.wtf, this.args);
             this.splines = InitializeSplines(this.wtf, random);
             this.mountainNoise = InitializeMountainNoise(this.wtf, this.args.seed, this.args.metersPerPixel);
+        }
+
+        public void OutputMapGrid(float metersPerPixel, string dir, string name)
+        {
+            int ratio = (int)Math.Round(this.args.metersPerPixel / metersPerPixel);
+
+            OutputMapGrid(64, 64 * ratio, dir, name);
+        }
+
+        public void OutputMapGrid(int sourceResolution, int targetResolution, string dir, string name)
+        {
+            Bitmap bmp = new Bitmap(targetResolution, targetResolution);
+            int bufferSize = (int)Math.Ceiling(sourceResolution / 20f);
+
+            for (int y = bufferSize; y < this.wtf.Height - sourceResolution - bufferSize; y += sourceResolution)
+            {
+                for (int x = bufferSize; x < this.wtf.Width - sourceResolution - bufferSize; x += sourceResolution)
+                {
+                    Rectangle rect = new Rectangle(x, y, sourceResolution, sourceResolution);
+
+                    bool isWorthwhile = false;
+                    for (int j = rect.Top; !isWorthwhile && j < rect.Bottom; j++)
+                    {
+                        for (int i = rect.Left; !isWorthwhile && i < rect.Right; i++)
+                        {
+                            isWorthwhile |= this.wtf.HydroField[j, i] == HydrologicalField.LandType.Land;
+                        }
+                    }
+
+                    if (!isWorthwhile)
+                        continue;
+
+                    OutputMapForRectangle(rect, bmp, dir, name + "_" + x + "_" + y);
+                }
+            }
         }
 
         public void OutputMapForRectangle(Rectangle sourceRect, Bitmap bmp, string dir = "C:\\Users\\Justin Murray\\Desktop\\terrain\\", string name = "submap")
