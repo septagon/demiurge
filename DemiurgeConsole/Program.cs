@@ -22,14 +22,7 @@ namespace DemiurgeConsole
             //TestScenarios.RunZoomedInScenario();
             //TestScenarios.RunPathScenario();
 
-            var wta = new WaterTableArgs();
-            var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "rivers.png"));
-            var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "base_heights.png"));
-            var msmArgs = new MeterScaleMap.Args(waters, heights, null);
-            msmArgs.seed = System.DateTime.UtcNow.Ticks;
-            var msm = new MeterScaleMap(msmArgs);
-
-            msm.OutputMapGrid(100, "C:\\Users\\Justin Murray\\Desktop\\terrain\\", "submap");
+            new Thread(TestScenarios.RunMeterScaleMapScenarioUR, StackSize).Start();
         }
     }
 }

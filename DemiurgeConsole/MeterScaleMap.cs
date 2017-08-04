@@ -35,7 +35,7 @@ namespace DemiurgeConsole
             public float mountainHeightMaxInMeters = 2000f;
             public float valleyRadiusInMeters = 5000f;
             public float canyonRadiusInMeters = 1000f;
-            public float riverCapacityToMetersWideScalar = 1f;
+            public Func<float, float> riverCapacityToMetersWideFunc = w => w;
 
             public float valleyStrength = 0.8f;
             public float canyonStrength = 0.999f;
@@ -76,11 +76,11 @@ namespace DemiurgeConsole
             this.mountainNoise = InitializeMountainNoise(this.wtf, this.args.seed, this.args.metersPerPixel);
         }
 
-        public void OutputMapGrid(float metersPerPixel, string dir, string name)
+        public void OutputMapGrid(float metersPerPixel, string dir, string name, int sourceResolution = 64)
         {
             int ratio = (int)Math.Round(this.args.metersPerPixel / metersPerPixel);
 
-            OutputMapGrid(64, 64 * ratio, dir, name);
+            OutputMapGrid(sourceResolution, sourceResolution * ratio, dir, name);
         }
 
         public void OutputMapGrid(int sourceResolution, int targetResolution, string dir, string name)
@@ -109,6 +109,15 @@ namespace DemiurgeConsole
                     OutputMapForRectangle(rect, bmp, dir, name + "_" + x + "_" + y);
                 }
             }
+        }
+        
+        public void OutputHighLevelMaps(Bitmap bmp, string outputPath)
+        {
+            Utils.OutputAsTributaryMap(this.wtf.GeographicFeatures, this.wtf.RiverSystems, this.wtf.DrainageField, bmp, outputPath + "tributaries.png");
+
+            Utils.OutputField(this.wtf, bmp, outputPath + "heightmap.png");
+
+            Utils.OutputAsColoredMap(this.wtf, this.wtf.RiverSystems, bmp, outputPath + "colored_map.png");
         }
 
         public void OutputMapForRectangle(Rectangle sourceRect, Bitmap bmp, string dir = "C:\\Users\\Justin Murray\\Desktop\\terrain\\", string name = "submap")
@@ -254,7 +263,7 @@ namespace DemiurgeConsole
 
                     if (0 <= x && x < newWidth && 0 <= y && y < newHeight)
                     {
-                        float riverRadiusInPixels = this.args.riverCapacityToMetersWideScalar * p[3] / metersPerPixel / 2f;
+                        float riverRadiusInPixels = this.args.riverCapacityToMetersWideFunc(p[3]) / metersPerPixel / 2f;
                         int l = -(int)(riverRadiusInPixels + 0.5f);
                         int r = (int)riverRadiusInPixels;
                         

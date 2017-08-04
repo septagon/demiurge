@@ -5,11 +5,42 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using static DemiurgeConsole.Utils;
 
 namespace DemiurgeConsole
 {
     public class TestScenarios
     {
+        public static void RunMeterScaleMapScenario()
+        {
+            var wta = new WaterTableArgs();
+            var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "rivers.png"));
+            var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "base_heights.png"));
+            var msmArgs = new MeterScaleMap.Args(waters, heights, null);
+            msmArgs.seed = System.DateTime.UtcNow.Ticks;
+            msmArgs.metersPerPixel = 1600;
+            msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Sqrt(msmArgs.metersPerPixel * c);
+            var msm = new MeterScaleMap(msmArgs);
+
+            msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\terrain\\");
+            msm.OutputMapGrid(100, "C:\\Users\\Justin Murray\\Desktop\\terrain\\", "submap");
+        }
+
+        public static void RunMeterScaleMapScenarioUR()
+        {
+            var wta = new WaterTableArgs();
+            var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "rivers_ur_alt.png"));
+            var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "base_heights_ur_alt.png"));
+            var msmArgs = new MeterScaleMap.Args(waters, heights, null);
+            msmArgs.seed = System.DateTime.UtcNow.Ticks;
+            msmArgs.metersPerPixel = 1600 / 5;
+            msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * c, 0.5f) / 4f;
+            var msm = new MeterScaleMap(msmArgs);
+
+            msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\terrain\\");
+            msm.OutputMapGrid(20, "C:\\Users\\Justin Murray\\Desktop\\terrain\\", "submap", 256);
+        }
+
         public static void RunPathScenario()
         {
             IField2d<float> costs = new MountainNoise(1024, 1024, 0.01f);// new Transformation2d(new Simplex2D(1024, 1024, 0.1f), v => (float)Math.Round(v));
