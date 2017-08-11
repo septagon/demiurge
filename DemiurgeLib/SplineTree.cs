@@ -14,6 +14,8 @@ namespace DemiurgeLib
         private int minSizeForFork;
         private float alpha;
 
+        public const float CAPACITY_DIVISOR = 10000f;
+
         public SplineTree(TreeNode<Point2d> tree, IField2d<float> altitudes, Random random, int minSizeForFork = 3, float alpha = 0.5f)
         {
             this.splines = new List<CenCatRomSpline>();
@@ -37,7 +39,7 @@ namespace DemiurgeLib
                 node.value.x + (float)this.random.NextDouble(), // X position in world coordinates
                 node.value.y + (float)this.random.NextDouble(), // Y position in world coordinates
                 this.altitudes[node.value.y, node.value.x],     // altitude in whatever units were used by the "altitudes" input
-                node.Size());                                   // river size, meaning the count of pixels above this.
+                node.Size() / CAPACITY_DIVISOR);                // river size, meaning the count of pixels above this, divided to avoid affecting the spline
 
             if (node.children.Count == 0 || (node.children.Count > 1 && node.Depth() <= minSizeForFork))
             {
@@ -94,6 +96,7 @@ namespace DemiurgeLib
                     if (idx != minIdx)
                     {
                         lsts[idx].Add(parentPoint);
+                        lsts[idx].Add(2 * lsts[idx][lsts[idx].Count - 2] - parentPoint);
                         this.splines.Add(new CenCatRomSpline(lsts[idx].ToArray(), this.alpha));
                     }
                 }

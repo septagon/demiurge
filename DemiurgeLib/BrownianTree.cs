@@ -153,10 +153,22 @@ namespace DemiurgeLib
                 }
             }
 
-            // If there are many candidates, choose one at random.  Otherwise, return nothing.
+            // If there are many candidates, choose the nearest.  Otherwise, return nothing.
             if (candidates.Count > 0)
             {
-                ret = candidates[random.Next(candidates.Count)];
+                ret = candidates[0];
+                float dist = Point2d.SqDist(ret, pos);
+
+                for (int idx = 1; idx < candidates.Count; idx++)
+                {
+                    float newDist = Point2d.SqDist(candidates[idx], pos);
+                    if (newDist < dist)
+                    {
+                        ret = candidates[idx];
+                        dist = newDist;
+                    }
+                }
+
                 return true;
             }
             return false;

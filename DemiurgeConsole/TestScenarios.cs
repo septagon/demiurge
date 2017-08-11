@@ -19,7 +19,7 @@ namespace DemiurgeConsole
             var msmArgs = new MeterScaleMap.Args(waters, heights, null);
             msmArgs.seed = System.DateTime.UtcNow.Ticks;
             msmArgs.metersPerPixel = 1600;
-            msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Sqrt(msmArgs.metersPerPixel * c);
+            msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Sqrt(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c);
             var msm = new MeterScaleMap(msmArgs);
 
             msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\terrain\\");
@@ -34,7 +34,7 @@ namespace DemiurgeConsole
             var msmArgs = new MeterScaleMap.Args(waters, heights, null);
             msmArgs.seed = System.DateTime.UtcNow.Ticks;
             msmArgs.metersPerPixel = 1600 / 5;
-            msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * c, 0.5f) / 4f;
+            msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c, 0.5f) / 4f;
             var msm = new MeterScaleMap(msmArgs);
 
             msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\terrain\\");

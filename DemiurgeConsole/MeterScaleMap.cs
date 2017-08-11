@@ -35,7 +35,7 @@ namespace DemiurgeConsole
             public float mountainHeightMaxInMeters = 2000f;
             public float valleyRadiusInMeters = 5000f;
             public float canyonRadiusInMeters = 1000f;
-            public Func<float, float> riverCapacityToMetersWideFunc = w => w;
+            public Func<float, float> riverCapacityToMetersWideFunc = w => SplineTree.CAPACITY_DIVISOR * w;
 
             public float valleyStrength = 0.8f;
             public float canyonStrength = 0.999f;
@@ -241,7 +241,7 @@ namespace DemiurgeConsole
             var riverField = new Field2d<float>(new ConstantField<float>(newWidth, newHeight, float.PositiveInfinity));
             foreach (var s in localSplines)
             {
-                var samples = s.GetSamplesPerControlPoint(2f * newWidth / sourceRect.Width);
+                var samples = s.GetSamplesPerControlPoint(1f * newWidth / sourceRect.Width);
 
                 int priorX = int.MinValue;
                 int priorY = int.MinValue;
