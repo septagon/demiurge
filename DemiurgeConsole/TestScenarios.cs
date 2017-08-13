@@ -11,6 +11,153 @@ namespace DemiurgeConsole
 {
     public class TestScenarios
     {
+        public static void ConvertPreciseHeightmapToColorMap(string file = "C:\\Users\\Justin Murray\\Desktop\\heightmap.png", float metersPerPixel = 20f)
+        {
+            Random random = new Random();
+            var bmp = new Bitmap(file);
+
+            Field2d<float> heightmap = new Field2d<float>(new FunctionField<float>(bmp.Width, bmp.Height, (x, y) =>
+            {
+                Color c = bmp.GetPixel(x, y);
+                return 1000 * c.R + 10 * c.G + 0.1f * c.B;
+            }));
+
+            //Field2d<vFloat> gradientmap = new Field2d<vFloat>(new FunctionField<vFloat>(bmp.Width, bmp.Height, (x, y) =>
+            //{
+            //    if (x == 0 || y == 0)
+            //    {
+            //        return new vFloat(0f, 0f);
+            //    }
+            //    return new vFloat(heightmap[y, x] - heightmap[y, x - 1], heightmap[y, x] - heightmap[y - 1, x]) / metersPerPixel;
+            //}));
+
+            Field2d<bool> isWater = new Field2d<bool>(new FunctionField<bool>(bmp.Width, bmp.Height, (x, y) =>
+            {
+                Color c = bmp.GetPixel(x, y);
+                return c.A != 255 || heightmap[y, x] < 5f;
+            }));
+
+            Color[] colors = new Color[]
+            {
+                Color.Khaki,
+                Color.SandyBrown,
+                Color.Salmon,
+                Color.Magenta,
+                Color.Maroon,
+                Color.DarkGoldenrod,
+                Color.DarkGreen,
+                Color.SlateGray,
+                Color.Purple,
+                Color.Orange,
+                Color.Orchid,
+                Color.YellowGreen,
+                Color.Violet,
+            };
+            //vFloat refDir = new vFloat(1, 1).norm();
+            //const float CLIFF_THRESHOLD = 1.5f;
+            //const float SNOW_THRESHOLD = -0.5f;
+            //const float SHRUBS_THRESHOLD = -0.5f;
+            //const float FOREST_THRESHOLD = -0.1f;
+
+            for (int y = 0; y < bmp.Height; y++)
+            {
+                for (int x = 0; x < bmp.Width; x++)
+                {
+                    //float mag = gradientmap[y, x].mag();
+                    //// Is related to the normal, in a slightly abstract way.  Think about it.
+                    //float theta = mag > 0f ? gradientmap[y, x].norm().dot(refDir) : 0f;
+                    //float t = (theta + 1f) / 2f;
+
+                    Color c = Color.NavajoWhite;
+
+                    /*if (random.NextDouble() < (heightmap[y, x] - 2000f) / 500f)
+                    {
+                        if (mag < CLIFF_THRESHOLD && theta > SNOW_THRESHOLD)
+                        {
+                            c = Color.Snow;
+                        }
+                        else
+                        {
+                            c = Utils.Lerp(Color.SlateGray, Color.LightSlateGray, t);
+                        }
+                    }
+                    else if (random.NextDouble() < (heightmap[y, x] - 1500f) / 500f)
+                    {
+                        if (mag > CLIFF_THRESHOLD)
+                        {
+                            c = Utils.Lerp(Color.Khaki, Color.LightSlateGray, t);
+                        }
+                        else if (theta < SHRUBS_THRESHOLD)
+                        {
+                            c = Utils.Lerp(Color.DarkSlateGray, Color.LightSlateGray, t);
+                        }
+                        else
+                        {
+                            c = Utils.Lerp(Color.DarkGray, Color.LightGray, t);
+                        }
+                    }
+                    else if (random.NextDouble() < (heightmap[y, x] - 1000f) / 500f)
+                    {
+                        if (mag > CLIFF_THRESHOLD)
+                        {
+                            c = Utils.Lerp(Color.DarkKhaki, Color.Khaki, t);
+                        }
+                        else if (theta < FOREST_THRESHOLD)
+                        {
+                            c = Color.DarkGreen;
+                        }
+                        else
+                        {
+                            c = Utils.Lerp(Color.ForestGreen, Color.DarkGreen, t);
+                        }
+                    }
+                    else if (random.NextDouble() < (heightmap[y, x] - 500f) / 500f)
+                    {
+                        if (mag > CLIFF_THRESHOLD)
+                        {
+                            c = Color.DarkSlateGray;
+                        }
+                        else if (theta < FOREST_THRESHOLD)
+                        {
+                            c = Utils.Lerp(Color.LawnGreen, Color.DarkGreen, mag);
+                        }
+                        else
+                        {
+                            c = Utils.Lerp(Color.ForestGreen, Color.LawnGreen, t);
+                        }
+                    }
+                    else if (random.NextDouble() < (heightmap[y, x] - 20f) / 500f)
+                    {
+                        if (mag > CLIFF_THRESHOLD)
+                        {
+                            c = Color.DarkSlateGray;
+                        }
+                        else if (theta < FOREST_THRESHOLD)
+                        {
+                            c = Color.ForestGreen;
+                        }
+                        else
+                        {
+                            c = Color.DarkGreen;
+                        }
+                    }*/
+
+                    if (isWater[y, x])
+                    {
+                        c = Color.DodgerBlue;
+                    }
+                    else
+                    {
+                        c = colors[((int)heightmap[y, x] / 200) % colors.Length];
+                    }
+
+                    bmp.SetPixel(x, y, c);
+                }
+            }
+
+            bmp.Save("C:\\Users\\Justin Murray\\Desktop\\colored.png");
+        }
+
         public static void RunMeterScaleMapScenario()
         {
             var wta = new WaterTableArgs();
