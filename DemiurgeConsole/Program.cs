@@ -75,7 +75,7 @@ namespace DemiurgeConsole
                 server.AddImage(fileName);
             }
 
-            StreamedChunkedPreciseHeightField streamedField = new StreamedChunkedPreciseHeightField(4096, 512, //256 * 512 / 32, 256 * 512 / 32, 
+            StreamedChunkedPreciseHeightField streamedField = new StreamedChunkedPreciseHeightField(256 * 512 / 32, 256 * 512 / 32, 10,
                 (x, y) =>
             {
                 var chunkToLoad = server.TryGetPathForPoint(x, y);
@@ -85,7 +85,7 @@ namespace DemiurgeConsole
                 }
                 return null;
             });
-            OutputField(streamedField, new Bitmap(streamedField.Width, streamedField.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\bigmap.png");
+            OutputField(new NormalizedComposition2d<float>(streamedField), new Bitmap(streamedField.Width, streamedField.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\bigmap.png");
         }
 
         class ImageServer

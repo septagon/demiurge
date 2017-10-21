@@ -34,7 +34,7 @@ namespace DemiurgeLib
 
             this.chunks = new List<Chunk>();
             this.cachedChunks = new List<Chunk>();
-            this.cacheSize = 3;
+            this.cacheSize = cacheSize;
         }
 
         public int Width { get; }
@@ -47,7 +47,7 @@ namespace DemiurgeLib
                 var chunk = GetChunkForPosition(x, y);
                 if (chunk.HasValue)
                 {
-                    return chunk.Value.Field[y, x];
+                    return chunk.Value.Field[y - chunk.Value.MinPoint.Y, x - chunk.Value.MinPoint.X];
                 }
                 else
                 {
@@ -85,10 +85,7 @@ namespace DemiurgeLib
             {
                 if (chunk.ContainsPoint(pt))
                 {
-                    this.cachedChunks.Add(chunk);
-
-                    if (this.cachedChunks.Count > this.cacheSize)
-                        this.cachedChunks.RemoveRange(this.cacheSize, this.cachedChunks.Count - this.cacheSize);
+                    CacheChunk(chunk);
 
                     return chunk;
                 }
@@ -105,7 +102,10 @@ namespace DemiurgeLib
             }
             else
             {
-                this.chunks.Add(new Chunk(x, y, field));
+                Chunk chunk = new Chunk(x, y, field);
+                this.chunks.Add(chunk);
+                CacheChunk(chunk);
+
                 return true;
             }
         }
@@ -124,6 +124,14 @@ namespace DemiurgeLib
         {
             this.chunks.Clear();
             this.chunks.AddRange(this.cachedChunks);
+        }
+
+        private void CacheChunk(Chunk chunk)
+        {
+            this.cachedChunks.Add(chunk);
+
+            if (this.cachedChunks.Count > this.cacheSize)
+                this.cachedChunks.RemoveRange(0, this.cachedChunks.Count - this.cacheSize);
         }
     }
 }

@@ -39,7 +39,7 @@ namespace DemiurgeConsole
         {
             private Func<int, int, Chunk?> LoaderFunction { get; }
 
-            public StreamedChunkedPreciseHeightField(int width, int height, Func<int, int, Chunk?> loaderFunction) : base(width, height)
+            public StreamedChunkedPreciseHeightField(int width, int height, int cacheSize, Func<int, int, Chunk?> loaderFunction) : base(width, height, cacheSize)
             {
                 this.LoaderFunction = loaderFunction;
             }
