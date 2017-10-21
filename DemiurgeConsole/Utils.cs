@@ -21,6 +21,52 @@ namespace DemiurgeConsole
             }
         }
 
+        public class FieldFromPreciseBitmap : Field2d<float>
+        {
+            public FieldFromPreciseBitmap(Bitmap bmp) : base(GetPrototypeField(bmp)) { }
+
+            private static IField2d<float> GetPrototypeField(Bitmap bmp)
+            {
+                return new FunctionField<float>(bmp.Width, bmp.Height, (x, y) =>
+                {
+                    Color c = bmp.GetPixel(x, y);
+                    return 1000 * c.R + 10 * c.G + 0.1f * c.B;
+                });
+            }
+        }
+
+        public class StreamedChunkedPreciseHeightField : ChunkField<float>
+        {
+            private Func<int, int, Chunk?> LoaderFunction { get; }
+
+            public StreamedChunkedPreciseHeightField(int width, int height, Func<int, int, Chunk?> loaderFunction) : base(width, height)
+            {
+                this.LoaderFunction = loaderFunction;
+            }
+
+            protected override Chunk? GetChunkForPosition(int x, int y)
+            {
+                var baseChunk = base.GetChunkForPosition(x, y);
+
+                if (baseChunk.HasValue)
+                {
+                    return baseChunk;
+                }
+                else
+                {
+                    var chunk = LoaderFunction(x, y);
+                    if (chunk.HasValue)
+                    {
+                        this.TryAddChunk(chunk.Value.MinPoint.X, chunk.Value.MinPoint.Y, chunk.Value.Field);
+                    }
+                }
+
+                baseChunk = base.GetChunkForPosition(x, y);
+                this.CompressToCache();
+                return baseChunk;
+            }
+        }
+
         public static Color Lerp(Color from, Color to, float t)
         {
             t = Math.Max(0, Math.Min(t, 1f));

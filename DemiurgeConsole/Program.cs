@@ -2,7 +2,10 @@
 using DemiurgeLib.Common;
 using DemiurgeLib.Noise;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Threading;
 using static DemiurgeConsole.Utils;
 
@@ -21,7 +24,7 @@ namespace DemiurgeConsole
             //TestScenarios.RunSplineScenario();
             //TestScenarios.RunZoomedInScenario();
             //TestScenarios.RunPathScenario();
-            
+
             /*
              * TODO: Let's not ignore the magnitude of the first render success just because it isn't the end of the road:
              * we just proved that we could render out the entire island -- all Madagascar-esque size of it -- down to 20
@@ -52,7 +55,66 @@ namespace DemiurgeConsole
              */
             //new Thread(TestScenarios.RunMeterScaleMapScenarioUR, StackSize).Start();
 
-            TestScenarios.ConvertPreciseHeightmapToColorMap();
+            //var wta = new WaterTableArgs();
+            //wta.inputPath = "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\input\\";
+            //var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "coastline.png"));
+            //var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "topography.png"));
+            //var msmArgs = new MeterScaleMap.Args(waters, heights, null);
+            //msmArgs.seed = System.DateTime.UtcNow.Ticks;
+            //msmArgs.metersPerPixel = 1600;
+            //msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c, 0.5f) / 4f;
+            //var msm = new MeterScaleMap(msmArgs);
+
+            //msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\");
+            //msm.OutputMapGrid(100, "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap", 32);
+
+            ImageServer server = new ImageServer();
+            string[] fileNames = Directory.GetFiles("C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap*.png");
+            foreach (string fileName in fileNames)
+            {
+                server.AddImage(fileName);
+            }
+
+            StreamedChunkedPreciseHeightField streamedField = new StreamedChunkedPreciseHeightField(4096, 512, //256 * 512 / 32, 256 * 512 / 32, 
+                (x, y) =>
+            {
+                var chunkToLoad = server.TryGetPathForPoint(x, y);
+                if (chunkToLoad.path != null)
+                {
+                    return new ChunkField<float>.Chunk(chunkToLoad.x, chunkToLoad.y, new FieldFromPreciseBitmap(new Bitmap(chunkToLoad.path)));
+                }
+                return null;
+            });
+            OutputField(streamedField, new Bitmap(streamedField.Width, streamedField.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\bigmap.png");
+        }
+
+        class ImageServer
+        {
+            private Dictionary<Rectangle, (int, int, string)> images = new Dictionary<Rectangle, (int, int, string)>();
+
+            public void AddImage(string imagePath)
+            {
+                string actualName = Path.GetFileNameWithoutExtension(imagePath);
+                int[] ulCoords = actualName.Remove(0, "submap_".Length).Split('_').Select(t => int.Parse(t)).ToArray();
+
+                int ulX = ulCoords[0] * 512 / 32;
+                int ulY = ulCoords[1] * 512 / 32;
+
+                this.images.Add(new Rectangle(ulX, ulY, 512, 512), (ulX, ulY, imagePath));
+            }
+
+            public (int x, int y, string path) TryGetPathForPoint(int x, int y)
+            {
+                foreach (var pair in this.images)
+                {
+                    if (pair.Key.Contains(x, y))
+                    {
+                        return pair.Value;
+                    }
+                }
+
+                return (-1, -1, null);
+            }
         }
     }
 }

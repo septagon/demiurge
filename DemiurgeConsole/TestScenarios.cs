@@ -16,11 +16,7 @@ namespace DemiurgeConsole
             Random random = new Random();
             var bmp = new Bitmap(file);
 
-            Field2d<float> heightmap = new Field2d<float>(new FunctionField<float>(bmp.Width, bmp.Height, (x, y) =>
-            {
-                Color c = bmp.GetPixel(x, y);
-                return 1000 * c.R + 10 * c.G + 0.1f * c.B;
-            }));
+            Field2d<float> heightmap = new FieldFromPreciseBitmap(bmp);
 
             //Field2d<vFloat> gradientmap = new Field2d<vFloat>(new FunctionField<vFloat>(bmp.Width, bmp.Height, (x, y) =>
             //{
@@ -603,6 +599,19 @@ namespace DemiurgeConsole
             Utils.OutputField(combined, img, args.outputPath + "combined.png");
 
             Utils.OutputAsOBJ(combined, splines, rect, img, args.outputPath);
+        }
+
+        public static void RunChunkedCheckersScenario(string outputFile = "C:\\Users\\Justin Murray\\Desktop\\chunks.png")
+        {
+            ConstantField<float> half = new ConstantField<float>(10, 10, 0.5f);
+            ConstantField<float> one = new ConstantField<float>(10, 10, 1f);
+
+            ChunkField<float> chunks = new ChunkField<float>(100, 100);
+            for (int y = 0; y < chunks.Height; y += half.Height)
+                for (int x = 0; x < chunks.Width; x += half.Width)
+                    chunks.TryAddChunk(x, y, (x + y) / 10 % 2 == 0 ? half : one);
+
+            Utils.OutputField(chunks, new Bitmap(chunks.Width, chunks.Height), outputFile);
         }
     }
 }
