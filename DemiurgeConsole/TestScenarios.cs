@@ -4,6 +4,7 @@ using DemiurgeLib.Noise;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using static DemiurgeConsole.Utils;
 
@@ -11,6 +12,29 @@ namespace DemiurgeConsole
 {
     public class TestScenarios
     {
+        public static void RunStreamedMapCombinerScenario()
+        {
+            ImageServer server = new ImageServer();
+            string[] fileNames = Directory.GetFiles("C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap*.png");
+            foreach (string fileName in fileNames)
+            {
+                server.AddImage(fileName);
+            }
+
+            StreamedChunkedPreciseHeightField streamedField = new StreamedChunkedPreciseHeightField(256 * 512 / 32, 256 * 512 / 32, 10,
+                (x, y) =>
+                {
+                    var chunkToLoad = server.TryGetPathForPoint(x, y);
+                    if (chunkToLoad.path != null)
+                    {
+                        return new ChunkField<float>.Chunk(chunkToLoad.x, chunkToLoad.y, new FieldFromPreciseBitmap(new Bitmap(chunkToLoad.path)));
+                    }
+                    return null;
+                });
+            OutputField(new NormalizedComposition2d<float>(streamedField), new Bitmap(streamedField.Width, streamedField.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\bigmap.png");
+        }
+    }
+
         public static void ConvertPreciseHeightmapToColorMap(string file = "C:\\Users\\Justin Murray\\Desktop\\heightmap.png", float metersPerPixel = 20f)
         {
             Random random = new Random();

@@ -67,6 +67,35 @@ namespace DemiurgeConsole
             }
         }
 
+        public class ImageServer
+        {
+            private Dictionary<Rectangle, (int, int, string)> images = new Dictionary<Rectangle, (int, int, string)>();
+
+            public void AddImage(string imagePath)
+            {
+                string actualName = Path.GetFileNameWithoutExtension(imagePath);
+                int[] ulCoords = actualName.Remove(0, "submap_".Length).Split('_').Select(t => int.Parse(t)).ToArray();
+
+                int ulX = ulCoords[0] * 512 / 32;
+                int ulY = ulCoords[1] * 512 / 32;
+
+                this.images.Add(new Rectangle(ulX, ulY, 512, 512), (ulX, ulY, imagePath));
+            }
+
+            public (int x, int y, string path) TryGetPathForPoint(int x, int y)
+            {
+                foreach (var pair in this.images)
+                {
+                    if (pair.Key.Contains(x, y))
+                    {
+                        return pair.Value;
+                    }
+                }
+
+                return (-1, -1, null);
+            }
+        }
+
         public static Color Lerp(Color from, Color to, float t)
         {
             t = Math.Max(0, Math.Min(t, 1f));
