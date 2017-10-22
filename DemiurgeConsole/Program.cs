@@ -65,9 +65,10 @@ namespace DemiurgeConsole
             msmArgs.metersPerPixel = 1600;
             msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c, 0.5f) / 4f;
             var msm = new MeterScaleMap(msmArgs);
-
+            
             msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\");
-            msm.OutputMapGrid(64, "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap", 32);
+            msm.OutputMapGrid(100, "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap", 32);
+            TestScenarios.RunStreamedMapCombinerScenario();
         }
     }
 }
