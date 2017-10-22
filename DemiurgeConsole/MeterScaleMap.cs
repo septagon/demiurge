@@ -26,6 +26,7 @@ namespace DemiurgeConsole
         {
             public IField2d<float> watersDrawing;
             public IField2d<float> heightsDrawing;
+            public IField2d<float> roughnessDrawing;
             public IField2d<float> rainDrawing;
 
             public long seed = 0;
@@ -49,10 +50,11 @@ namespace DemiurgeConsole
             public float wtfCarveAdd = 0.3f;
             public float wtfCarveMul = 1.3f;
 
-            public Args(IField2d<float> waters, IField2d<float> heights, IField2d<float> rain)
+            public Args(IField2d<float> waters, IField2d<float> heights, IField2d<float> roughness, IField2d<float> rain)
             {
                 this.watersDrawing = waters;
                 this.heightsDrawing = heights;
+                this.roughnessDrawing = roughness;
                 this.rainDrawing = rain;
             }
         }
@@ -136,15 +138,16 @@ namespace DemiurgeConsole
             IField2d<float> mountains = new SubContinuum<float>(width, height, this.mountainNoise, rect);
             // TODO: hills?
 
+            IField2d<float> roughness = new BlurredField(new SubContinuum<float>(width, height, new ContinuousField(this.args.roughnessDrawing), rect), 0.5f * width / rect.Width);
+
             IField2d<float> riverbeds = GetRiverFieldForRectangle(width, height, rect);
             IField2d<float> damping = GetDampingFieldForRectangle(rect, riverbeds);
 
             IField2d<float> heightmap;
             {
                 IField2d<float> dampedNoise = new Transformation2d<float, float, float>(mountains, damping, (m, d) => Math.Max(1f - d, 0f) * m);
-                
-                // TODO: Allow mountains at low base elevation?
-                IField2d<float> groundHeight = new Transformation2d<float, float, float>(waterTable, dampedNoise, (w, m) => w + m * Math.Min(w, args.mountainHeightMaxInMeters));
+                IField2d<float> scaledDampedNoise = new Transformation2d<float, float, float>(dampedNoise, roughness, (n, r) => n * r * this.args.mountainHeightMaxInMeters);
+                IField2d<float> groundHeight = new Transformation2d<float, float, float>(waterTable, scaledDampedNoise, (w, m) => w + m);
 
                 // TODO: Erode the groundHeight.
 

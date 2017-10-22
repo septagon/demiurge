@@ -55,17 +55,19 @@ namespace DemiurgeConsole
              */
             //new Thread(TestScenarios.RunMeterScaleMapScenarioUR, StackSize).Start();
 
-            //var wta = new WaterTableArgs();
-            //wta.inputPath = "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\input\\";
-            //var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "coastline.png"));
-            //var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "topography.png"));
-            //var msmArgs = new MeterScaleMap.Args(waters, heights, null);
-            //msmArgs.seed = System.DateTime.UtcNow.Ticks;
-            //msmArgs.metersPerPixel = 1600;
-            //msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c, 0.5f) / 4f;
-            //var msm = new MeterScaleMap(msmArgs);
+            var wta = new WaterTableArgs();
+            wta.inputPath = "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\input\\";
+            var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "coastline.png"));
+            var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "topography.png"));
+            var roughness = new FieldFromBitmap(new Bitmap(wta.inputPath + "roughness.png"));
+            var msmArgs = new MeterScaleMap.Args(waters, heights, roughness, null);
+            msmArgs.seed = System.DateTime.UtcNow.Ticks;
+            msmArgs.metersPerPixel = 1600;
+            msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c, 0.5f) / 4f;
+            var msm = new MeterScaleMap(msmArgs);
 
-            //msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\");
-            //msm.OutputMapGrid(100, "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap", 32);
+            msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\");
+            msm.OutputMapGrid(64, "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap", 32);
+        }
     }
 }

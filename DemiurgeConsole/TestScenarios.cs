@@ -33,7 +33,6 @@ namespace DemiurgeConsole
                 });
             OutputField(new NormalizedComposition2d<float>(streamedField), new Bitmap(streamedField.Width, streamedField.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\bigmap.png");
         }
-    }
 
         public static void ConvertPreciseHeightmapToColorMap(string file = "C:\\Users\\Justin Murray\\Desktop\\heightmap.png", float metersPerPixel = 20f)
         {
@@ -183,7 +182,7 @@ namespace DemiurgeConsole
             var wta = new WaterTableArgs();
             var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "rivers.png"));
             var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "base_heights.png"));
-            var msmArgs = new MeterScaleMap.Args(waters, heights, null);
+            var msmArgs = new MeterScaleMap.Args(waters, heights, heights, null);
             msmArgs.seed = System.DateTime.UtcNow.Ticks;
             msmArgs.metersPerPixel = 1600;
             msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Sqrt(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c);
@@ -198,7 +197,7 @@ namespace DemiurgeConsole
             var wta = new WaterTableArgs();
             var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "rivers_ur_alt.png"));
             var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "base_heights_ur_alt.png"));
-            var msmArgs = new MeterScaleMap.Args(waters, heights, null);
+            var msmArgs = new MeterScaleMap.Args(waters, heights, heights, null);
             msmArgs.seed = System.DateTime.UtcNow.Ticks;
             msmArgs.metersPerPixel = 1600 / 5;
             msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c, 0.5f) / 4f;
