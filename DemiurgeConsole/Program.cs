@@ -58,12 +58,14 @@ namespace DemiurgeConsole
             var wta = new WaterTableArgs();
             wta.inputPath = "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\input\\";
             var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "coastline.png"));
-            var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "topography.png"));
+            var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "heights.png"));
             var roughness = new FieldFromBitmap(new Bitmap(wta.inputPath + "roughness.png"));
             var msmArgs = new MeterScaleMap.Args(waters, heights, roughness, null);
             msmArgs.seed = System.DateTime.UtcNow.Ticks;
-            msmArgs.metersPerPixel = 1600;
+            msmArgs.metersPerPixel = 800;
             msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c, 0.5f) / 4f;
+            msmArgs.baseHeightMaxInMeters = 500;
+            msmArgs.valleyStrength = 0.95f;
             var msm = new MeterScaleMap(msmArgs);
             
             msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\");

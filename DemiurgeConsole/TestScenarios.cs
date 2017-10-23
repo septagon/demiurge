@@ -12,7 +12,7 @@ namespace DemiurgeConsole
 {
     public class TestScenarios
     {
-        public static void RunStreamedMapCombinerScenario()
+        public static void RunStreamedMapCombinerScenario(int cacheSize = 16)
         {
             ImageServer server = new ImageServer();
             string[] fileNames = Directory.GetFiles("C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap*.png");
@@ -21,7 +21,7 @@ namespace DemiurgeConsole
                 server.AddImage(fileName);
             }
 
-            StreamedChunkedPreciseHeightField streamedField = new StreamedChunkedPreciseHeightField(256 * 512 / 32, 256 * 512 / 32, 10,
+            StreamedChunkedPreciseHeightField streamedField = new StreamedChunkedPreciseHeightField(512 * 256 / 32, 512 * 256 / 32, cacheSize,
                 (x, y) =>
                 {
                     var chunkToLoad = server.TryGetPathForPoint(x, y);
@@ -31,7 +31,21 @@ namespace DemiurgeConsole
                     }
                     return null;
                 });
-            OutputField(new NormalizedComposition2d<float>(streamedField), new Bitmap(streamedField.Width, streamedField.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\bigmap.png");
+            
+            Field2d<float> output = new Field2d<float>(new DemiurgeLib.Common.ConstantField<float>(streamedField.Width, streamedField.Height, 0f));
+            foreach (var chunkToLoad in server.GetImages())
+            {
+                var chunk = new ChunkField<float>.Chunk(chunkToLoad.x, chunkToLoad.y, new FieldFromPreciseBitmap(new Bitmap(chunkToLoad.path)));
+                for (int y = 0; y < chunk.Field.Height; y++)
+                {
+                    for (int x = 0; x < chunk.Field.Width; x++)
+                    {
+                        output[y + chunk.MinPoint.Y / 2, x + chunk.MinPoint.X / 2] = chunk.Field[y, x];
+                    }
+                }
+            }
+
+            OutputField(new NormalizedComposition2d<float>(output), new Bitmap(output.Width, output.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\bigmap.png");
         }
 
         public static void ConvertPreciseHeightmapToColorMap(string file = "C:\\Users\\Justin Murray\\Desktop\\heightmap.png", float metersPerPixel = 20f)

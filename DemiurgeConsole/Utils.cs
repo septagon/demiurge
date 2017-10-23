@@ -94,6 +94,11 @@ namespace DemiurgeConsole
 
                 return (-1, -1, null);
             }
+
+            public IEnumerable<(int x, int y, string path)> GetImages()
+            {
+                return this.images.Values;
+            }
         }
 
         public static Color Lerp(Color from, Color to, float t)

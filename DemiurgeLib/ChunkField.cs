@@ -133,5 +133,23 @@ namespace DemiurgeLib
             if (this.cachedChunks.Count > this.cacheSize)
                 this.cachedChunks.RemoveRange(0, this.cachedChunks.Count - this.cacheSize);
         }
+
+        public IField2d<T> RenderToField()
+        {
+            Field2d<T> output = new Field2d<T>(new Common.ConstantField<T>(this.Width, this.Height, default(T)));
+
+            foreach (var chunk in this.chunks)
+            {
+                for (int y = 0; y < chunk.Field.Height; y++)
+                {
+                    for (int x = 0; x < chunk.Field.Width; x++)
+                    {
+                        output[y + chunk.MinPoint.Y, x + chunk.MinPoint.X] = chunk.Field[y, x];
+                    }
+                }
+            }
+
+            return output;
+        }
     }
 }
