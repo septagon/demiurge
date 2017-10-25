@@ -104,7 +104,7 @@ namespace DemiurgeLib
                     else
                     {
                         float capacity = Math.Max(oldHeight - newHeight, minSlope) * droplet.Speed * droplet.Water * pCapacity;
-
+                        
                         if (droplet.Sediment > capacity)
                         {
                             float droppedSediment = (droplet.Sediment - capacity) * pDeposit;
@@ -123,7 +123,10 @@ namespace DemiurgeLib
                         }
                     }
 
-                    // This is from the paper, but it's super weird.  So, the drops will pick up speed even if they go uphill?  I think speed is the wrong term for this variable.
+                    // This is from the paper, but it's super weird.  So, the drops will pick up speed even if they go uphill?
+                    // I think speed is the wrong term for this variable.  In fact, this whole concept is very magical.  Speed should
+                    // be determined by the magnitude of the velocity, not by some random accumulator.  On the other hand, I tried 
+                    // that, and this works way better.  So...
                     droplet.Speed = (float)Math.Sqrt(droplet.Speed * droplet.Speed + Math.Abs(newHeight - oldHeight) * pGravity);
                     droplet.Water = droplet.Water * (1 - pEvaporate);
                 }
