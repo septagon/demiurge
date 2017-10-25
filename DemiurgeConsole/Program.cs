@@ -73,7 +73,7 @@ namespace DemiurgeConsole
             //TestScenarios.RunStreamedMapCombinerScenario();
 
             var heightmap = new FieldFromBitmap(new Bitmap("C:\\Users\\Justin Murray\\Desktop\\input.png"));
-            var eroded = Erosion.DropletHydraulic(heightmap, 25);
+            var eroded = Erosion.DropletHydraulic(heightmap, 300000, 100);
             OutputField(new NormalizedComposition2d<float>(eroded), new Bitmap(eroded.Width, eroded.Height), "C:\\Users\\Justin Murray\\Desktop\\output.png");
         }
     }
