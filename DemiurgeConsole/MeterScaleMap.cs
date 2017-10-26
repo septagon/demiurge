@@ -152,6 +152,9 @@ namespace DemiurgeConsole
                 // TODO: Erode the groundHeight.
 
                 heightmap = new Transformation2d<float, float, float>(groundHeight, riverbeds, Math.Min);
+
+                //DEBUG
+                heightmap = Erosion.DropletHydraulic(heightmap, 2 * heightmap.Width * heightmap.Height, 100, maxHeight: this.args.baseHeightMaxInMeters + this.args.mountainHeightMaxInMeters);
             }
 
             IField2d<float> riverField = new SubField<float>(riverbeds, new Rectangle(bmp.Width / 20, bmp.Height / 20, bmp.Width, bmp.Height));

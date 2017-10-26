@@ -45,14 +45,14 @@ namespace DemiurgeLib
         }
 
         // Based on the approach by Hans Theobald Beyer, "Implementation of a method for hydraulic erosion," 2015
-        public static Field2d<float> DropletHydraulic(IField2d<float> inputHeightmap, int numDroplets, int iterationsPerDrop, float minSlope = 0f)
+        public static Field2d<float> DropletHydraulic(IField2d<float> inputHeightmap, int numDroplets, int iterationsPerDrop, float minSlope = 0f, float maxHeight = 1f)
         {
             Random random = new Random();
             float pFriction = 0.3f;
             float pCapacity = 1f;
             float pErode = 0.3f;
             float pDeposit = 0.3f;
-            float pGravity = 0.8f;
+            float pGravity = 0.8f / maxHeight;
             float pEvaporate = 0.01f;
 
             const int STARTING_DIRECTION_GRANULARITY = 32;
