@@ -55,7 +55,7 @@ namespace DemiurgeConsole
              */
             //new Thread(TestScenarios.RunMeterScaleMapScenarioUR, StackSize).Start();
 
-            var wta = new WaterTableArgs();
+            /*var wta = new WaterTableArgs();
             wta.inputPath = "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\input\\";
             var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "coastline.png"));
             var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "heights.png"));
@@ -70,29 +70,29 @@ namespace DemiurgeConsole
             
             msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\");
             msm.OutputMapGrid(100, "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap", 32);
-            TestScenarios.RunStreamedMapCombinerScenario();
+            TestScenarios.RunStreamedMapCombinerScenario();*/
 
 
             // So, if I change the scale of the map, it becomes visibly grainy and noisy.  Blurring (even by a tiny radius) removes the noise, 
             // but even then it's clear that much of the sophistication has been lost.  Traverse the logic of the erosion algorithm, understand
             // exactly what it is that causes things to degrade when the world scales up, then come up with a strategy to fix it.
             // ANSWER: It's all down to pGravity!  Just scale that by the inverse of the max height and everything's hunky-dory!
-            /*var heightmap = new ScaleTransform(new FieldFromBitmap(new Bitmap("C:\\Users\\Justin Murray\\Desktop\\input.png")), 2500);
+            var heightmap = new ScaleTransform(new FieldFromBitmap(new Bitmap("C:\\Users\\Justin Murray\\Desktop\\input.png")), 2500);
 
-            var eroded0 = Erosion.DropletHydraulic(heightmap, heightmap.Width * heightmap.Height, 100);
+            var eroded0 = Erosion.DropletHydraulic(heightmap, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
             OutputField(new NormalizedComposition2d<float>(eroded0), new Bitmap(eroded0.Width, eroded0.Height), "C:\\Users\\Justin Murray\\Desktop\\output0.png");
 
-            var eroded1 = Erosion.DropletHydraulic(eroded0, heightmap.Width * heightmap.Height, 100);
+            var eroded1 = Erosion.DropletHydraulic(eroded0, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
             OutputField(new NormalizedComposition2d<float>(eroded1), new Bitmap(eroded1.Width, eroded1.Height), "C:\\Users\\Justin Murray\\Desktop\\output1.png");
 
-            var eroded2 = Erosion.DropletHydraulic(eroded1, heightmap.Width * heightmap.Height, 100);
+            var eroded2 = Erosion.DropletHydraulic(eroded1, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
             OutputField(new NormalizedComposition2d<float>(eroded2), new Bitmap(eroded2.Width, eroded2.Height), "C:\\Users\\Justin Murray\\Desktop\\output2.png");
 
-            var eroded3 = Erosion.DropletHydraulic(eroded2, heightmap.Width * heightmap.Height, 100);
+            var eroded3 = Erosion.DropletHydraulic(eroded2, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
             OutputField(new NormalizedComposition2d<float>(eroded3), new Bitmap(eroded3.Width, eroded3.Height), "C:\\Users\\Justin Murray\\Desktop\\output3.png");
 
-            var eroded4 = Erosion.DropletHydraulic(eroded3, heightmap.Width * heightmap.Height, 100);
-            OutputField(new NormalizedComposition2d<float>(eroded4), new Bitmap(eroded4.Width, eroded4.Height), "C:\\Users\\Justin Murray\\Desktop\\output4.png");*/
+            var eroded4 = Erosion.DropletHydraulic(eroded3, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
+            OutputField(new NormalizedComposition2d<float>(eroded4), new Bitmap(eroded4.Width, eroded4.Height), "C:\\Users\\Justin Murray\\Desktop\\output4.png");
         }
     }
 }

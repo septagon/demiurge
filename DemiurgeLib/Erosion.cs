@@ -1,5 +1,7 @@
-﻿using System;
+﻿using DemiurgeLib.Common;
+using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,7 +25,7 @@ namespace DemiurgeLib
         {
             float x, y;
 
-            if ((int)point[0] >= field.Width - 1)
+            if ((int)point[0] % 2 == 1)
             {
                 x = field[(int)point[1], (int)point[0] - 1] - field[(int)point[1], (int)point[0]];
             }
@@ -32,7 +34,7 @@ namespace DemiurgeLib
                 x = field[(int)point[1], (int)point[0]] - field[(int)point[1], (int)point[0] + 1];
             }
 
-            if (point[1] >= field.Height - 1)
+            if ((int)point[1] % 2 == 1)
             {
                 y = field[(int)point[1] - 1, (int)point[0]] - field[(int)point[1], (int)point[0]];
             }
@@ -44,8 +46,64 @@ namespace DemiurgeLib
             return new vFloat(x, y);
         }
 
+        private static IField2d<float> GetKernel(int radius)
+        {
+            var seed = new SparseField2d<float>(2 * radius + 1, 2 * radius + 1, 0f);
+            seed[radius, radius] = 1f;
+            
+            // Because "radius" to the blurred field roughly equates to "standard deviation" while
+            // it means "bounding dimension" in the context of the kernel, we halve the kernel in 
+            // in order to (very roughly) convert between the paradigms.
+            var blurred = new BlurredField(seed, radius / 2);
+
+            // Normalize.
+            float sum = 0f;
+            for (int y = 0; y < blurred.Height; y++)
+                for (int x = 0; x < blurred.Width; x++)
+                    sum += blurred[y, x];
+
+            // If I return "seed" here, then it operates perfectly normally.  There's some
+            // kind of strange oscillation case that results from the area-based nature of
+            // using a larger kernel.  But what?
+            return new ScaleTransform(blurred, 1f / sum);
+        }
+
+        private static void PickUpSedimentFromKernel(Field2d<float> field, IField2d<float> kernel, int centerX, int centerY, float targetSediment)
+        {
+            for (int y = 0; y < kernel.Height; y++)
+            {
+                for (int x = 0; x < kernel.Width; x++)
+                {
+                    int cX = centerX + x - kernel.Width / 2;
+                    int cY = centerY + y - kernel.Height / 2;
+
+                    if (cX >= 0 && cY >= 0 && cX < field.Width && cY < field.Height)
+                    {
+                        field[cY, cX] -= Math.Min(field[cY, cX], targetSediment * kernel[y, x]);
+                    }
+                }
+            }
+        }
+
+        private static void DropSedimentFromKernel(Field2d<float> field, IField2d<float> kernel, int centerX, int centerY, float targetSediment)
+        {
+            for (int y = 0; y < kernel.Height; y++)
+            {
+                for (int x = 0; x < kernel.Width; x++)
+                {
+                    int cX = centerX + x - kernel.Width / 2;
+                    int cY = centerY + y - kernel.Height / 2;
+
+                    if (cX >= 0 && cY >= 0 && cX < field.Width && cY < field.Height)
+                    {
+                        field[cY, cX] += targetSediment * kernel[y, x];
+                    }
+                }
+            }
+        }
+
         // Based on the approach by Hans Theobald Beyer, "Implementation of a method for hydraulic erosion," 2015
-        public static Field2d<float> DropletHydraulic(IField2d<float> inputHeightmap, int numDroplets, int iterationsPerDrop, float minSlope = 0f, float maxHeight = 1f)
+        public static Field2d<float> DropletHydraulic(IField2d<float> inputHeightmap, int numDroplets, int iterationsPerDrop, float minSlope = 0f, float maxHeight = 1f, int radius = 0)
         {
             Random random = new Random();
             float pFriction = 0.3f;
@@ -57,8 +115,10 @@ namespace DemiurgeLib
 
             const int STARTING_DIRECTION_GRANULARITY = 32;
 
-            Field2d<float> heightmap = new Field2d<float>(inputHeightmap);
+            var kernel = GetKernel(radius);
 
+            Field2d<float> heightmap = new Field2d<float>(inputHeightmap);
+            
             for (int idx = 0; idx < numDroplets; idx++)
             {
                 Droplet droplet = new Droplet()
@@ -97,11 +157,10 @@ namespace DemiurgeLib
                     {
                         float droppedSediment = Math.Min(newHeight - oldHeight, droplet.Sediment);
 
-                        // TODO: Pick up or drop sediment over a region, not a single point.
-                        heightmap[oldPos.y, oldPos.x] += droppedSediment;
+                        DropSedimentFromKernel(heightmap, kernel, oldPos.x, oldPos.y, droppedSediment);
                         droplet.Sediment -= droppedSediment;
                     }
-                    else
+                    else if (newHeight < oldHeight)
                     {
                         float capacity = Math.Max(oldHeight - newHeight, minSlope) * droplet.Speed * droplet.Water * pCapacity;
                         
@@ -109,16 +168,14 @@ namespace DemiurgeLib
                         {
                             float droppedSediment = (droplet.Sediment - capacity) * pDeposit;
 
-                            // TODO: Pick up or drop sediment over a region, not a single point.
-                            heightmap[oldPos.y, oldPos.x] += droppedSediment;
+                            DropSedimentFromKernel(heightmap, kernel, oldPos.x, oldPos.y, droppedSediment);
                             droplet.Sediment -= droppedSediment;
                         }
                         else
                         {
                             float pickedUpSediment = Math.Min((capacity - droplet.Sediment) * pErode, oldHeight - newHeight);
 
-                            // TODO: Pick up or drop sediment over a region, not a single point.
-                            heightmap[oldPos.y, oldPos.x] -= pickedUpSediment;
+                            PickUpSedimentFromKernel(heightmap, kernel, oldPos.x, oldPos.y, pickedUpSediment);
                             droplet.Sediment += pickedUpSediment;
                         }
                     }
