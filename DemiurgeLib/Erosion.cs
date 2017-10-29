@@ -50,12 +50,12 @@ namespace DemiurgeLib
         {
             var seed = new SparseField2d<float>(2 * radius + 1, 2 * radius + 1, 0f);
             seed[radius, radius] = 1f;
-            
+
             // Because "radius" to the blurred field roughly equates to "standard deviation" while
             // it means "bounding dimension" in the context of the kernel, we halve the kernel in 
             // in order to (very roughly) convert between the paradigms.
             var blurred = new BlurredField(seed, radius / 2);
-
+            
             // Normalize.
             float sum = 0f;
             for (int y = 0; y < blurred.Height; y++)
@@ -76,10 +76,25 @@ namespace DemiurgeLib
                 {
                     int cX = centerX + x - kernel.Width / 2;
                     int cY = centerY + y - kernel.Height / 2;
-
+            
                     if (cX >= 0 && cY >= 0 && cX < field.Width && cY < field.Height)
                     {
-                        field[cY, cX] -= Math.Min(field[cY, cX], targetSediment * kernel[y, x]);
+                        // TODO: Don't allow the field to erode below zero.
+                        // TODO: Here, at last, is the source of the insane bug.  The way this bug works is easiest to understand
+                        // if one envisions a kernel of small radius and a "trough" consisting of two elevated walls and a lower 
+                        // middle.  The nature of a trough is that a particle can become "trapped" in one, rolling back and forth
+                        // as each wall turns the particle back.  If a trough is narrow enough that a particle dropping sediment in
+                        // the middle will also drop sediment on both walls by virtue of its kernel, then oscillation in the trough
+                        // can cause the particle to "build towers."  This happens because when the particle is picking up sediment--
+                        // i.e., when it's beginning to go down-hill--its kernel covers part of the trough and a little bit outside;
+                        // however, when the particle is depositing sediment--i.e., when it's beginning to go uphill--its kernel is
+                        // entirely over the trough.  By repeated action, this allows the particle to "dig" sediment from just outside
+                        // the walls of its trough and bring that sediment back into the trough, creating the extremely 
+                        // characteristic "bars" of high and low elevation in extremely close proximity.  The solution to this, 
+                        // presumably, is to prevent this "digging" behavior, presumably by taking sediment in a more cautious 
+                        // manner that won't allow erosion computed from a high place to induce the removal of sediment from a low
+                        // place.
+                        field[cY, cX] -= targetSediment * kernel[y, x];
                     }
                 }
             }
@@ -93,7 +108,7 @@ namespace DemiurgeLib
                 {
                     int cX = centerX + x - kernel.Width / 2;
                     int cY = centerY + y - kernel.Height / 2;
-
+            
                     if (cX >= 0 && cY >= 0 && cX < field.Width && cY < field.Height)
                     {
                         field[cY, cX] += targetSediment * kernel[y, x];
@@ -103,7 +118,7 @@ namespace DemiurgeLib
         }
 
         // Based on the approach by Hans Theobald Beyer, "Implementation of a method for hydraulic erosion," 2015
-        public static Field2d<float> DropletHydraulic(IField2d<float> inputHeightmap, int numDroplets, int iterationsPerDrop, float minSlope = 0f, float maxHeight = 1f, int radius = 0)
+        public static Field2d<float> DropletHydraulic(IField2d<float> inputHeightmap, int numDroplets, int iterationsPerDrop, float minSlope = 0f, float maxHeight = 1f, int radius = 2)
         {
             Random random = new Random();
             float pFriction = 0.3f;
@@ -175,7 +190,8 @@ namespace DemiurgeLib
                         {
                             float pickedUpSediment = Math.Min((capacity - droplet.Sediment) * pErode, oldHeight - newHeight);
 
-                            PickUpSedimentFromKernel(heightmap, kernel, oldPos.x, oldPos.y, pickedUpSediment);
+                            //PickUpSedimentFromKernel(heightmap, kernel, oldPos.x, oldPos.y, pickedUpSediment); TODO: HERE!
+                            heightmap[oldPos.y, oldPos.x] -= pickedUpSediment;
                             droplet.Sediment += pickedUpSediment;
                         }
                     }
@@ -186,6 +202,92 @@ namespace DemiurgeLib
                     // that, and this works way better.  So...
                     droplet.Speed = (float)Math.Sqrt(droplet.Speed * droplet.Speed + Math.Abs(newHeight - oldHeight) * pGravity);
                     droplet.Water = droplet.Water * (1 - pEvaporate);
+                }
+            }
+
+            return heightmap;
+        }
+
+        private struct Pixel
+        {
+            public (int x, int y) Position;
+            //public float Energy;  // TODO: Jump about if we have too much energy?  Or store more sediment?
+            public float Water;
+            public float Sediment;
+        }
+        /// <summary>
+        /// So, the idea is to just descend, one pixel at a time, until we run out of water.
+        /// </summary>
+        /// <param name="originalHeightmap"></param>
+        /// <returns></returns>
+        public static Field2d<float> PixelNoiseErosion(IField2d<float> originalHeightmap)
+        {
+            Random random = new Random();
+            int iterationsCount = originalHeightmap.Width * originalHeightmap.Height * 2;
+            float epsilon = 0.001f;
+            float evaporation = 0.1f;
+            int radius = 0;
+            float waterToCapacity = 100f;
+            float erosion = 0.1f;
+            float deposition = 0.1f;
+
+            var heightmap = new Field2d<float>(originalHeightmap);
+
+            var kernel = GetKernel(radius);
+
+            for (int iteration = 0; iteration < iterationsCount; iteration++)
+            {
+                var pixel = new Pixel()
+                {
+                    Position = (random.Next(heightmap.Width), random.Next(heightmap.Height)),
+                    Water = 1f,
+                    Sediment = 0f
+                };
+
+                while (pixel.Water > epsilon)
+                {
+                    float oldHeight = heightmap[pixel.Position.y, pixel.Position.x];
+
+                    (int x, int y) newPos = pixel.Position;
+                    for (int j = -1; j <= 1; j++)
+                    {
+                        for (int i = -1; i <= 1; i++)
+                        {
+                            int x = pixel.Position.x + i;
+                            int y = pixel.Position.y + j;
+
+                            if (x >= 0 && x < heightmap.Width && y >= 0 && y < heightmap.Width &&
+                                heightmap[y, x] < heightmap[newPos.y, newPos.x])
+                            {
+                                newPos.x = x;
+                                newPos.y = y;
+                            }
+                        }
+                    }
+
+                    float newHeight = heightmap[newPos.y, newPos.x];
+
+                    // Grab from the old.
+                    float erodedSediment = (oldHeight - newHeight) * erosion;
+                    PickUpSedimentFromKernel(heightmap, kernel, pixel.Position.x, pixel.Position.y, erodedSediment);
+                    pixel.Sediment += erodedSediment;
+
+                    // Drop on the new.
+                    {
+                        float capacity = pixel.Water * waterToCapacity;
+                        float depositedSediment = Math.Max(pixel.Sediment - capacity, 0f) * deposition;
+
+                        DropSedimentFromKernel(heightmap, kernel, newPos.x, newPos.y, depositedSediment);
+                        pixel.Sediment -= depositedSediment;
+                    }
+
+                    if (float.IsNaN(heightmap[newPos.y, newPos.x]))
+                    {
+                        heightmap[newPos.y, newPos.x] = 0f;
+                    }
+
+                    pixel.Position = newPos;
+                    pixel.Water *= (1f - evaporation);
                 }
             }
 

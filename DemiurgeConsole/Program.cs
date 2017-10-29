@@ -79,18 +79,21 @@ namespace DemiurgeConsole
             // ANSWER: It's all down to pGravity!  Just scale that by the inverse of the max height and everything's hunky-dory!
             var heightmap = new ScaleTransform(new FieldFromBitmap(new Bitmap("C:\\Users\\Justin Murray\\Desktop\\input.png")), 2500);
 
+            //var eroded = Erosion.PixelNoiseErosion(heightmap);
+            //OutputField(new ScaleTransform(eroded, 1f / 2500), new Bitmap(eroded.Width, eroded.Height), "C:\\Users\\Justin Murray\\Desktop\\output.png");
+
             var eroded0 = Erosion.DropletHydraulic(heightmap, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
             OutputField(new NormalizedComposition2d<float>(eroded0), new Bitmap(eroded0.Width, eroded0.Height), "C:\\Users\\Justin Murray\\Desktop\\output0.png");
-
+            
             var eroded1 = Erosion.DropletHydraulic(eroded0, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
             OutputField(new NormalizedComposition2d<float>(eroded1), new Bitmap(eroded1.Width, eroded1.Height), "C:\\Users\\Justin Murray\\Desktop\\output1.png");
-
+            
             var eroded2 = Erosion.DropletHydraulic(eroded1, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
             OutputField(new NormalizedComposition2d<float>(eroded2), new Bitmap(eroded2.Width, eroded2.Height), "C:\\Users\\Justin Murray\\Desktop\\output2.png");
-
+            
             var eroded3 = Erosion.DropletHydraulic(eroded2, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
             OutputField(new NormalizedComposition2d<float>(eroded3), new Bitmap(eroded3.Width, eroded3.Height), "C:\\Users\\Justin Murray\\Desktop\\output3.png");
-
+            
             var eroded4 = Erosion.DropletHydraulic(eroded3, heightmap.Width * heightmap.Height, 100, maxHeight: 2500);
             OutputField(new NormalizedComposition2d<float>(eroded4), new Bitmap(eroded4.Width, eroded4.Height), "C:\\Users\\Justin Murray\\Desktop\\output4.png");
         }
