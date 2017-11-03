@@ -68,8 +68,44 @@ namespace DemiurgeLib
             return new ScaleTransform(blurred, 1f / sum);
         }
 
+        // TODO: Don't allow the field to erode below zero.
+        // TODO: Here, at last, is the source of the insane bug.  The way this bug works is easiest to understand
+        // if one envisions a kernel of small radius and a "trough" consisting of two elevated walls and a lower 
+        // middle.  The nature of a trough is that a particle can become "trapped" in one, rolling back and forth
+        // as each wall turns the particle back.  If a trough is narrow enough that a particle dropping sediment in
+        // the middle will also drop sediment on both walls by virtue of its kernel, then oscillation in the trough
+        // can cause the particle to "build towers."  This happens because when the particle is picking up sediment--
+        // i.e., when it's beginning to go down-hill--its kernel covers part of the trough and a little bit outside;
+        // however, when the particle is depositing sediment--i.e., when it's beginning to go uphill--its kernel is
+        // entirely over the trough.  By repeated action, this allows the particle to "dig" sediment from just outside
+        // the walls of its trough and bring that sediment back into the trough, creating the extremely 
+        // characteristic "bars" of high and low elevation in extremely close proximity.  The solution to this, 
+        // presumably, is to prevent this "digging" behavior, presumably by taking sediment in a more cautious 
+        // manner that won't allow erosion computed from a high place to induce the removal of sediment from a low
+        // place.
         private static void PickUpSedimentFromKernel(Field2d<float> field, IField2d<float> kernel, int centerX, int centerY, float targetSediment)
         {
+            if (targetSediment == 0)
+                return;
+
+            float targetMin = field[centerY, centerX] - kernel[kernel.Height / 2, kernel.Width / 2] * targetSediment;
+
+            float collected = 0f;
+            for (int y = 0; y < kernel.Height; y++)
+            {
+                for (int x = 0; x < kernel.Width; x++)
+                {
+                    int cX = centerX + x - kernel.Width / 2;
+                    int cY = centerY + y - kernel.Height / 2;
+
+                    if (cX >= 0 && cY >= 0 && cX < field.Width && cY < field.Height && field[cY, cX] >= targetMin)
+                    {
+                        collected += targetSediment * kernel[y, x];
+                    }
+                }
+            }
+
+            float scalar = targetSediment / collected;
             for (int y = 0; y < kernel.Height; y++)
             {
                 for (int x = 0; x < kernel.Width; x++)
@@ -77,24 +113,10 @@ namespace DemiurgeLib
                     int cX = centerX + x - kernel.Width / 2;
                     int cY = centerY + y - kernel.Height / 2;
             
-                    if (cX >= 0 && cY >= 0 && cX < field.Width && cY < field.Height)
+                    if (cX >= 0 && cY >= 0 && cX < field.Width && cY < field.Height && field[cY, cX] >= targetMin)
                     {
-                        // TODO: Don't allow the field to erode below zero.
-                        // TODO: Here, at last, is the source of the insane bug.  The way this bug works is easiest to understand
-                        // if one envisions a kernel of small radius and a "trough" consisting of two elevated walls and a lower 
-                        // middle.  The nature of a trough is that a particle can become "trapped" in one, rolling back and forth
-                        // as each wall turns the particle back.  If a trough is narrow enough that a particle dropping sediment in
-                        // the middle will also drop sediment on both walls by virtue of its kernel, then oscillation in the trough
-                        // can cause the particle to "build towers."  This happens because when the particle is picking up sediment--
-                        // i.e., when it's beginning to go down-hill--its kernel covers part of the trough and a little bit outside;
-                        // however, when the particle is depositing sediment--i.e., when it's beginning to go uphill--its kernel is
-                        // entirely over the trough.  By repeated action, this allows the particle to "dig" sediment from just outside
-                        // the walls of its trough and bring that sediment back into the trough, creating the extremely 
-                        // characteristic "bars" of high and low elevation in extremely close proximity.  The solution to this, 
-                        // presumably, is to prevent this "digging" behavior, presumably by taking sediment in a more cautious 
-                        // manner that won't allow erosion computed from a high place to induce the removal of sediment from a low
-                        // place.
-                        field[cY, cX] -= targetSediment * kernel[y, x];
+                        
+                        field[cY, cX] -= targetSediment * kernel[y, x] * scalar;
                     }
                 }
             }
@@ -118,7 +140,7 @@ namespace DemiurgeLib
         }
 
         // Based on the approach by Hans Theobald Beyer, "Implementation of a method for hydraulic erosion," 2015
-        public static Field2d<float> DropletHydraulic(IField2d<float> inputHeightmap, int numDroplets, int iterationsPerDrop, float minSlope = 0f, float maxHeight = 1f, int radius = 2)
+        public static Field2d<float> DropletHydraulic(IField2d<float> inputHeightmap, int numDroplets, int iterationsPerDrop, float minSlope = 0f, float maxHeight = 1f, int radius = 0)
         {
             Random random = new Random();
             float pFriction = 0.3f;
@@ -190,8 +212,7 @@ namespace DemiurgeLib
                         {
                             float pickedUpSediment = Math.Min((capacity - droplet.Sediment) * pErode, oldHeight - newHeight);
 
-                            //PickUpSedimentFromKernel(heightmap, kernel, oldPos.x, oldPos.y, pickedUpSediment); TODO: HERE!
-                            heightmap[oldPos.y, oldPos.x] -= pickedUpSediment;
+                            PickUpSedimentFromKernel(heightmap, kernel, oldPos.x, oldPos.y, pickedUpSediment);
                             droplet.Sediment += pickedUpSediment;
                         }
                     }

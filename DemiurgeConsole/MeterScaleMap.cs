@@ -3,6 +3,7 @@ using DemiurgeLib.Common;
 using DemiurgeLib.Noise;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 
@@ -36,6 +37,7 @@ namespace DemiurgeConsole
             public float mountainHeightMaxInMeters = 2000f;
             public float valleyRadiusInMeters = 5000f;
             public float canyonRadiusInMeters = 1000f;
+            public float erosionRadiusInMeters = 50f;
             public Func<float, float> riverCapacityToMetersWideFunc = w => SplineTree.CAPACITY_DIVISOR * w;
 
             public float valleyStrength = 0.8f;
@@ -154,7 +156,13 @@ namespace DemiurgeConsole
                 heightmap = new Transformation2d<float, float, float>(groundHeight, riverbeds, Math.Min);
 
                 //DEBUG
-                heightmap = Erosion.DropletHydraulic(heightmap, 2 * heightmap.Width * heightmap.Height, 100, maxHeight: this.args.baseHeightMaxInMeters + this.args.mountainHeightMaxInMeters);
+                heightmap = Erosion.DropletHydraulic(
+                    heightmap, 
+                    2 * heightmap.Width * heightmap.Height, 
+                    100, 
+                    maxHeight: this.args.baseHeightMaxInMeters + this.args.mountainHeightMaxInMeters,
+                    radius: (int)(this.args.erosionRadiusInMeters / (this.args.metersPerPixel * sourceRect.Width / heightmap.Width))
+                    );
             }
 
             IField2d<float> riverField = new SubField<float>(riverbeds, new Rectangle(bmp.Width / 20, bmp.Height / 20, bmp.Width, bmp.Height));
@@ -332,6 +340,12 @@ namespace DemiurgeConsole
                 {
                     float h = Math.Max(heights[y, x], 0f);
                     float r = Math.Max(rivers[y, x], 0f);
+
+                    if (float.IsNaN(h))
+                    {
+                        Debug.Assert(false, "TODO: This should never have occurred.");
+                        h = 0;
+                    }
                     
                     int m1k = (int)(h / 1000);
                     int m10 = (int)((h - m1k * 1000) / 10);
