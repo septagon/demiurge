@@ -119,9 +119,9 @@ namespace DemiurgeConsole
         {
             Utils.OutputAsTributaryMap(this.wtf.GeographicFeatures, this.wtf.RiverSystems, this.wtf.DrainageField, bmp, outputPath + "tributaries.png");
 
-            Utils.OutputField(this.wtf, bmp, outputPath + "heightmap.png");
+            Utils.OutputField(new NormalizedComposition2d<float>(this.wtf), bmp, outputPath + "heightmap.png");
 
-            Utils.OutputAsColoredMap(this.wtf, this.wtf.RiverSystems, bmp, outputPath + "colored_map.png");
+            Utils.OutputAsColoredMap(new NormalizedComposition2d<float>(this.wtf), this.wtf.RiverSystems, bmp, outputPath + "colored_map.png");
         }
 
         public void OutputMapForRectangle(Rectangle sourceRect, Bitmap bmp, string dir = "C:\\Users\\Justin Murray\\Desktop\\terrain\\", string name = "submap")

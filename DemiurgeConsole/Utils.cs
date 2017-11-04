@@ -293,6 +293,19 @@ namespace DemiurgeConsole
             }
         }
 
+        private static float MaxValue(IField2d<float> field)
+        {
+            float maxValue = float.NegativeInfinity;
+            for (int y = 0; y < field.Height; y++)
+            {
+                for (int x = 0; x < field.Width; x++)
+                {
+                    maxValue = Math.Max(maxValue, field[y, x]);
+                }
+            }
+            return maxValue;
+        }
+
         public static void OutputAsColoredMap(IField2d<float> field, List<TreeNode<TreeNode<Point2d>>> riverSystems, Bitmap bmp, string filename)
         {
             for (int x = 0, y = 0; y < field.Height; y += ++x / field.Width, x %= field.Width)
