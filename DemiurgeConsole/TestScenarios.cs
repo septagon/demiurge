@@ -32,7 +32,7 @@ namespace DemiurgeConsole
                     return null;
                 });
             
-            Field2d<float> output = new Field2d<float>(new DemiurgeLib.Common.ConstantField<float>(streamedField.Width, streamedField.Height, 0f));
+            Field2d<float> output = new Field2d<float>(new ConstantField<float>(streamedField.Width, streamedField.Height, 0f));
             foreach (var chunkToLoad in server.GetImages())
             {
                 var chunk = new ChunkField<float>.Chunk(chunkToLoad.x, chunkToLoad.y, new FieldFromPreciseBitmap(new Bitmap(chunkToLoad.path)));
@@ -44,8 +44,43 @@ namespace DemiurgeConsole
                     }
                 }
             }
+            output = new BlurredField(output, 1f);
 
-            OutputField(new NormalizedComposition2d<float>(output), new Bitmap(output.Width, output.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\bigmap.png");
+            Bitmap bmp = new Bitmap(output.Width, output.Height);
+
+            for (int y = 0; y < output.Height; y++)
+            {
+                for (int x = 0; x < output.Width; x++)
+                {
+                    float val = output[y, x];
+                    if (val > 2250f)
+                    {
+                        bmp.SetPixel(x, y, Lerp(Color.Gray, Color.White, (val - 2250f) / 1750f));
+                    }
+                    else if (val > 1250f)
+                    {
+                        bmp.SetPixel(x, y, Lerp(Color.Red, Color.Gray, (val - 1250f) / 1000f));
+                    }
+                    else if (val > 750f)
+                    {
+                        bmp.SetPixel(x, y, Lerp(Color.Yellow, Color.Red, (val - 750f) / 500f));
+                    }
+                    else if (val > 250f)
+                    {
+                        bmp.SetPixel(x, y, Lerp(Color.Green, Color.Yellow, (val - 250f) / 500f));
+                    }
+                    else if (val > 5f)
+                    {
+                        bmp.SetPixel(x, y, Lerp(Color.DarkGreen, Color.Green, (val - 5f) / 245f));
+                    }
+                    else
+                    {
+                        bmp.SetPixel(x, y, Color.Aqua);
+                    }
+                }
+            }
+
+            bmp.Save("C:\\Users\\Justin Murray\\Desktop\\egwethoon\\bigmap.png");
         }
 
         public static void ConvertPreciseHeightmapToColorMap(string file = "C:\\Users\\Justin Murray\\Desktop\\heightmap.png", float metersPerPixel = 20f)

@@ -169,7 +169,7 @@ namespace DemiurgeConsole
             IField2d<float> heightField = new SubField<float>(heightmap, new Rectangle(bmp.Width / 20, bmp.Height / 20, bmp.Width, bmp.Height));
 
             // TODO: DEBUG
-            OutputAsOBJ(heightField, new Transformation2d<float, bool>(riverField, r => !float.IsPositiveInfinity(r)), sourceRect, bmp, dir, name);
+            //OutputAsOBJ(heightField, new Transformation2d<float, bool>(riverField, r => !float.IsPositiveInfinity(r)), sourceRect, bmp, dir, name);
             OutputAsPreciseHeightmap(heightField, riverField, dir + name + ".png");
         }
 
