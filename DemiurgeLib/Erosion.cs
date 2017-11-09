@@ -23,24 +23,26 @@ namespace DemiurgeLib
         // But for now, I can't imagine subpixel accuracy is going to make a whole lot of difference.
         private static vFloat GradientAtPoint(this IField2d<float> field, vFloat point)
         {
+            int pX = (int)point[0];
+            int pY = (int)point[1];
             float x, y;
 
-            if ((int)point[0] % 2 == 1)
+            if (pX % 2 == 1 || pX == field.Width - 1)
             {
-                x = field[(int)point[1], (int)point[0] - 1] - field[(int)point[1], (int)point[0]];
+                x = field[pY, pX - 1] - field[pY, pX];
             }
             else
             {
-                x = field[(int)point[1], (int)point[0]] - field[(int)point[1], (int)point[0] + 1];
+                x = field[pY, pX] - field[pY, pX + 1];
             }
 
-            if ((int)point[1] % 2 == 1)
+            if (pY % 2 == 1 || pY == field.Height - 1)
             {
-                y = field[(int)point[1] - 1, (int)point[0]] - field[(int)point[1], (int)point[0]];
+                y = field[pY - 1, pX] - field[pY, pX];
             }
             else
             {
-                y = field[(int)point[1], (int)point[0]] - field[(int)point[1] + 1, (int)point[0]];
+                y = field[pY, pX] - field[pY + 1, pX];
             }
 
             return new vFloat(x, y);

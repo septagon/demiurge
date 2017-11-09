@@ -53,9 +53,9 @@ namespace DemiurgeConsole
              *     than adequate for right now.  Low pri, but hills?
              *   - Erosion.
              */
-            //new Thread(TestScenarios.RunMeterScaleMapScenarioUR, StackSize).Start();
+            new Thread(TestScenarios.RunMeterScaleMapScenarioUR, StackSize).Start();
 
-            var wta = new WaterTableArgs();
+            /*var wta = new WaterTableArgs();
             wta.inputPath = "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\input\\";
             var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "coastline.png"));
             var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "heights.png"));
@@ -70,7 +70,7 @@ namespace DemiurgeConsole
             
             msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\");
             msm.OutputMapGrid(100, "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap", 32);
-            TestScenarios.RunStreamedMapCombinerScenario();
+            TestScenarios.RunStreamedMapCombinerScenario();*/
 
 
             // So, if I change the scale of the map, it becomes visibly grainy and noisy.  Blurring (even by a tiny radius) removes the noise, 

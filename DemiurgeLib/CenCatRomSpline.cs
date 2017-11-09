@@ -47,7 +47,7 @@ namespace DemiurgeLib
             for (float t = 0f; t < 1f; t += 1f / resolution)
             {
                 float lt = ConvertToLocalT(t);
-                if (lt >= this.ts[idx + 1])
+                if (lt > this.ts[idx + 1])
                     idx++;
 
                 yield return Sample(lt, idx - 1, idx, idx + 1, idx + 2);

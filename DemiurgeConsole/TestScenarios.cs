@@ -246,14 +246,18 @@ namespace DemiurgeConsole
             var wta = new WaterTableArgs();
             var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "rivers_ur_alt.png"));
             var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "base_heights_ur_alt.png"));
-            var msmArgs = new MeterScaleMap.Args(waters, heights, heights, null);
+            var roughness = new FieldFromBitmap(new Bitmap(wta.inputPath + "base_heights_ur_alt.png"));
+            var msmArgs = new MeterScaleMap.Args(waters, heights, roughness, null);
             msmArgs.seed = System.DateTime.UtcNow.Ticks;
             msmArgs.metersPerPixel = 1600 / 5;
             msmArgs.riverCapacityToMetersWideFunc = c => (float)Math.Pow(msmArgs.metersPerPixel * SplineTree.CAPACITY_DIVISOR * c, 0.5f) / 4f;
+            msmArgs.baseHeightMaxInMeters = 800f;
+            msmArgs.mountainHeightMaxInMeters = 3000f;
+            msmArgs.valleyStrength = 0.98f; // TODO: Enable a function to control valley width, strength, and glaciation.
             var msm = new MeterScaleMap(msmArgs);
 
             msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\terrain\\");
-            msm.OutputMapGrid(20, "C:\\Users\\Justin Murray\\Desktop\\terrain\\", "submap", 256);
+            msm.OutputMapGrid(100, "C:\\Users\\Justin Murray\\Desktop\\terrain\\", "submap", 256);
         }
 
         public static void RunPathScenario()

@@ -169,7 +169,7 @@ namespace DemiurgeConsole
             IField2d<float> heightField = new SubField<float>(heightmap, new Rectangle(bmp.Width / 20, bmp.Height / 20, bmp.Width, bmp.Height));
 
             // TODO: DEBUG
-            //OutputAsOBJ(heightField, new Transformation2d<float, bool>(riverField, r => !float.IsPositiveInfinity(r)), sourceRect, bmp, dir, name);
+            OutputAsOBJ(heightField, new Transformation2d<float, bool>(riverField, r => !float.IsPositiveInfinity(r)), sourceRect, bmp, dir, name);
             OutputAsPreciseHeightmap(heightField, riverField, dir + name + ".png");
         }
 
@@ -366,7 +366,7 @@ namespace DemiurgeConsole
                 objWriter.WriteLine("mtllib " + outputName + ".mtl");
                 objWriter.WriteLine("o " + outputName + "_o");
 
-                float metersPerPixel = this.args.metersPerPixel * rect.Width / this.wtf.Width;
+                float metersPerPixel = this.args.metersPerPixel * rect.Width / heights.Width;
                 IField2d<vFloat> verts = new Transformation2d<float, vFloat>(heights,
                     (x, y, z) => new vFloat(x * metersPerPixel, -y * metersPerPixel, z));
 
@@ -452,23 +452,50 @@ namespace DemiurgeConsole
             
             for (int x = 0, y = 0; y < heights.Height; y += ++x / heights.Width, x %= heights.Width)
             {
-                float value = heights[y, x] / (this.args.baseHeightMaxInMeters + this.args.mountainHeightMaxInMeters);
+                float value = heights[y, x];
                 Color color;
-                if (riverField[y, x] || value < 0.05f)
+                if (riverField[y, x])
+                {
                     color = Color.DodgerBlue;
-                else if (value < 0.1f)
-                    color = Utils.Lerp(Color.Beige, Color.LawnGreen, (value - 0.05f) / 0.05f);
-                else if (value < 0.4f)
-                    color = Utils.Lerp(Color.LawnGreen, Color.ForestGreen, (value - 0.1f) / 0.3f);
-                else if (value < 0.8f)
-                    color = Utils.Lerp(Color.ForestGreen, Color.SlateGray, (value - 0.4f) / 0.4f);
-                else if (value < 0.9f)
-                    color = Utils.Lerp(Color.SlateGray, Color.White, (value - 0.8f) / 0.1f);
+                }
+                else if (value > 2250f)
+                {
+                    color = Lerp(Color.Gray, Color.White, (value - 2250f) / 1750f);
+                }
+                else if (value > 1250f)
+                {
+                    color = Lerp(Color.Red, Color.Gray, (value - 1250f) / 1000f);
+                }
+                else if (value > 750f)
+                {
+                    color = Lerp(Color.Yellow, Color.Red, (value - 750f) / 500f);
+                }
+                else if (value > 250f)
+                {
+                    color = Lerp(Color.Green, Color.Yellow, (value - 250f) / 500f);
+                }
+                else if (value > 5f)
+                {
+                    color = Lerp(Color.DarkGreen, Color.Green, (value - 5f) / 245f);
+                }
                 else
-                    color = Color.White;
+                {
+                    color = Color.DodgerBlue;
+                }
                 bmp.SetPixel(x, y, color);
             }
             bmp.Save(outputDir + outputName + ".jpg");
+        }
+
+        private static Color Lerp(Color from, Color to, float t)
+        {
+            t = Math.Max(0, Math.Min(t, 1f));
+            return Color.FromArgb(
+                (int)(from.A * (1f - t) + to.A * t),
+                (int)(from.R * (1f - t) + to.R * t),
+                (int)(from.G * (1f - t) + to.G * t),
+                (int)(from.B * (1f - t) + to.B * t)
+                );
         }
     }
 }

@@ -140,7 +140,7 @@ namespace DemiurgeLib
                 }
             }
 
-            System.Diagnostics.Debug.Assert(Waterways.AreWaterwaysLegalForField(this));
+            //System.Diagnostics.Debug.Assert(Waterways.AreWaterwaysLegalForField(this));
         }
     }
 }
