@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using static DemiurgeConsole.Utils;
+using static DemiurgeLib.Common.Utils;
 
 namespace DemiurgeConsole
 {
@@ -342,7 +343,7 @@ namespace DemiurgeConsole
             //    return val * t;
             //});
 
-            Utils.OutputField(mountainNoise0, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m0.png");
+            OutputField(mountainNoise0, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m0.png");
             //var scaled = new ReResField(new SubField<float>(new Utils.FieldFromBitmap(jranjana), new Rectangle(400, 300, 200, 200)), 5f);
             //Utils.OutputField(scaled, new Bitmap(scaled.Width, scaled.Height), "C:\\Users\\Justin Murray\\Desktop\\scaled.png");
             //Utils.OutputField(mountainNoise1, new Bitmap(width, height), "C:\\Users\\Justin Murray\\Desktop\\m1.png");
@@ -363,15 +364,15 @@ namespace DemiurgeConsole
             Random random = new Random((int)args.seed);
 
             Bitmap jranjana = new Bitmap(args.inputPath + simpleWatersMapName);
-            Field2d<float> field = new Utils.FieldFromBitmap(jranjana);
+            Field2d<float> field = new FieldFromBitmap(jranjana);
 
-            IField2d<float> bf = new Utils.FieldFromBitmap(new Bitmap(args.inputPath + simpleAltitudesMapName));
+            IField2d<float> bf = new FieldFromBitmap(new Bitmap(args.inputPath + simpleAltitudesMapName));
             bf = new NormalizedComposition2d<float>(bf, new ScaleTransform(new Simplex2D(bf.Width, bf.Height, args.baseNoiseScale, args.seed), args.baseNoiseScalar));
-            Utils.OutputField(bf, jranjana, args.outputPath + "basis.png");
+            OutputField(bf, jranjana, args.outputPath + "basis.png");
 
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable, random);
             tree.RunDefaultTree();
-            Utils.OutputField(new Transformation2d<BrownianTree.Availability, float>(tree, val => val == BrownianTree.Availability.Available ? 1f : 0f),
+            OutputField(new Transformation2d<BrownianTree.Availability, float>(tree, val => val == BrownianTree.Availability.Available ? 1f : 0f),
                 jranjana, args.outputPath + "rivers.png");
 
             HydrologicalField hydro = new HydrologicalField(tree, args.hydroSensitivity, args.hydroShoreThreshold);
@@ -379,21 +380,21 @@ namespace DemiurgeConsole
             {
                 return (float)(args.wtfCarveAdd + random.NextDouble() * args.wtfCarveMul);
             });
-            Utils.OutputAsTributaryMap(wtf.GeographicFeatures, wtf.RiverSystems, wtf.DrainageField, jranjana, args.outputPath + "tributaries.png");
+            OutputAsTributaryMap(wtf.GeographicFeatures, wtf.RiverSystems, wtf.DrainageField, jranjana, args.outputPath + "tributaries.png");
 
-            Utils.OutputField(new NormalizedComposition2d<float>(new Transformation2d<float, float, float>(bf, wtf, (b, w) => Math.Abs(b - w))),
+            OutputField(new NormalizedComposition2d<float>(new Transformation2d<float, float, float>(bf, wtf, (b, w) => Math.Abs(b - w))),
                 jranjana, args.outputPath + "errors.png");
 
-            Utils.SerializeMap(hydro, wtf, args.seed, args.outputPath + "serialization.bin");
+            SerializeMap(hydro, wtf, args.seed, args.outputPath + "serialization.bin");
 
-            Utils.OutputField(wtf, jranjana, args.outputPath + "heightmap.png");
-            Utils.OutputAsColoredMap(wtf, wtf.RiverSystems, jranjana, args.outputPath + "colored_map.png");
+            OutputField(wtf, jranjana, args.outputPath + "heightmap.png");
+            OutputAsColoredMap(wtf, wtf.RiverSystems, jranjana, args.outputPath + "colored_map.png");
         }
 
         public static void RunBlurryScenario()
         {
             Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\maps\\input\\rivers_hr.png");
-            Field2d<float> field = new Utils.FieldFromBitmap(jranjana);
+            Field2d<float> field = new FieldFromBitmap(jranjana);
             BlurredField blurred = new BlurredField(field);
 
             Bitmap output = new Bitmap(blurred.Width, blurred.Height);
@@ -409,7 +410,7 @@ namespace DemiurgeConsole
         public static void RunWateryScenario()
         {
             Bitmap jranjana = new Bitmap("C:\\Users\\Justin Murray\\Desktop\\maps\\input\\rivers_lr.png");
-            Field2d<float> field = new Utils.FieldFromBitmap(jranjana);
+            Field2d<float> field = new FieldFromBitmap(jranjana);
             BrownianTree tree = BrownianTree.CreateFromOther(field, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable);
             tree.RunDefaultTree();
             HydrologicalField hydro = new HydrologicalField(tree);
@@ -454,7 +455,7 @@ namespace DemiurgeConsole
                 }).ToArray();
             }
 
-            Utils.OutputAsTributaryMap(sets, riverSets, draino, jranjana, "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\tree.png");
+            OutputAsTributaryMap(sets, riverSets, draino, jranjana, "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\tree.png");
         }
 
         public static void RunNoisyScenario()
@@ -489,22 +490,22 @@ namespace DemiurgeConsole
             WaterTableArgs args = new WaterTableArgs();
             Bitmap bmp = new Bitmap(args.inputPath + "rivers.png");
 
-            IField2d<float> baseMap = new Utils.FieldFromBitmap(new Bitmap(args.inputPath + "base_heights.png"));
+            IField2d<float> baseMap = new FieldFromBitmap(new Bitmap(args.inputPath + "base_heights.png"));
             baseMap = new ReResField(baseMap, (float)bmp.Width / baseMap.Width);
 
-            var wtf = Utils.GenerateWaters(bmp, baseMap);
-            Utils.OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
+            var wtf = DemiurgeLib.Utils.GenerateWaters(bmp, baseMap);
+            OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
 
-            IField2d<float> rainfall = new Utils.FieldFromBitmap(new Bitmap(args.inputPath + "rainfall.png"));
+            IField2d<float> rainfall = new FieldFromBitmap(new Bitmap(args.inputPath + "rainfall.png"));
             rainfall = new ReResField(rainfall, (float)wtf.Width / rainfall.Width);
 
-            IField2d<float> wateriness = Utils.GetWaterinessMap(wtf, rainfall);
-            Utils.OutputField(new NormalizedComposition2d<float>(wateriness), bmp, args.outputPath + "wateriness.png");
+            IField2d<float> wateriness = DemiurgeLib.Utils.GetWaterinessMap(wtf, rainfall);
+            OutputField(new NormalizedComposition2d<float>(wateriness), bmp, args.outputPath + "wateriness.png");
 
             var locations = Utils.GetSettlementLocations(wtf, wateriness);
             SparseField2d<float> settlementMap = new SparseField2d<float>(wtf.Width, wtf.Height, 0f);
             foreach (var loc in locations) settlementMap.Add(loc, wateriness[loc.y, loc.x]);
-            Utils.OutputField(settlementMap, bmp, args.outputPath + "settlements.png");
+            OutputField(settlementMap, bmp, args.outputPath + "settlements.png");
 
             TriangleNet.Geometry.InputGeometry pointSet = new TriangleNet.Geometry.InputGeometry();
             foreach (var loc in locations)
@@ -534,7 +535,7 @@ namespace DemiurgeConsole
                 meshField[(int)v0.Y, (int)v0.X] = 1f;
                 meshField[(int)v1.Y, (int)v1.X] = 1f;
             }
-            Utils.OutputField(meshField, bmp, args.outputPath + "mesh.png");
+            OutputField(meshField, bmp, args.outputPath + "mesh.png");
         }
 
         public static void RunZoomedInScenario()
@@ -555,11 +556,11 @@ namespace DemiurgeConsole
             WaterTableArgs args = new WaterTableArgs();
             Bitmap bmp = new Bitmap(args.inputPath + "rivers.png");
 
-            IField2d<float> baseMap = new Utils.FieldFromBitmap(new Bitmap(args.inputPath + "base_heights.png"));
+            IField2d<float> baseMap = new FieldFromBitmap(new Bitmap(args.inputPath + "base_heights.png"));
             baseMap = new ReResField(baseMap, (float)bmp.Width / baseMap.Width);
 
-            var wtf = Utils.GenerateWaters(bmp, baseMap);
-            Utils.OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
+            var wtf = DemiurgeLib.Utils.GenerateWaters(bmp, baseMap);
+            OutputAsColoredMap(wtf, wtf.RiverSystems, bmp, args.outputPath + "colored_map.png");
 
             var hasWater = new Transformation2d<HydrologicalField.LandType, float>(wtf.HydroField, t => t == HydrologicalField.LandType.Land ? 0f : 1f);
             var noiseDamping = new Transformation2d(new BlurredField(hasWater, 2f), v => 3.5f * v);
@@ -672,9 +673,9 @@ namespace DemiurgeConsole
                 );
 
             Bitmap img = new Bitmap(combined.Width, combined.Height);
-            Utils.OutputField(combined, img, args.outputPath + "combined.png");
+            OutputField(combined, img, args.outputPath + "combined.png");
 
-            Utils.OutputAsOBJ(combined, splines, rect, img, args.outputPath);
+            OutputAsOBJ(combined, splines, rect, img, args.outputPath);
         }
 
         public static void RunChunkedCheckersScenario(string outputFile = "C:\\Users\\Justin Murray\\Desktop\\chunks.png")
@@ -687,7 +688,7 @@ namespace DemiurgeConsole
                 for (int x = 0; x < chunks.Width; x += half.Width)
                     chunks.TryAddChunk(x, y, (x + y) / 10 % 2 == 0 ? half : one);
 
-            Utils.OutputField(chunks, new Bitmap(chunks.Width, chunks.Height), outputFile);
+            OutputField(chunks, new Bitmap(chunks.Width, chunks.Height), outputFile);
         }
     }
 }

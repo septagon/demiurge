@@ -7,9 +7,9 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 
-namespace DemiurgeConsole
+namespace DemiurgeLib
 {
-    class MeterScaleMap
+    public class MeterScaleMap
     {
         /// <summary>
         /// The following types of direct input are implemented:
@@ -117,11 +117,11 @@ namespace DemiurgeConsole
         
         public void OutputHighLevelMaps(Bitmap bmp, string outputPath)
         {
-            Utils.OutputAsTributaryMap(this.wtf.GeographicFeatures, this.wtf.RiverSystems, this.wtf.DrainageField, bmp, outputPath + "tributaries.png");
+            Common.Utils.OutputAsTributaryMap(this.wtf.GeographicFeatures, this.wtf.RiverSystems, this.wtf.DrainageField, bmp, outputPath + "tributaries.png");
 
-            Utils.OutputField(new NormalizedComposition2d<float>(this.wtf), bmp, outputPath + "heightmap.png");
+            Common.Utils.OutputField(new NormalizedComposition2d<float>(this.wtf), bmp, outputPath + "heightmap.png");
 
-            Utils.OutputAsColoredMap(new NormalizedComposition2d<float>(this.wtf), this.wtf.RiverSystems, bmp, outputPath + "colored_map.png");
+            Common.Utils.OutputAsColoredMap(new NormalizedComposition2d<float>(this.wtf), this.wtf.RiverSystems, bmp, outputPath + "colored_map.png");
         }
 
         public void OutputMapForRectangle(Rectangle sourceRect, Bitmap bmp, string dir = "C:\\Users\\Justin Murray\\Desktop\\terrain\\", string name = "submap")

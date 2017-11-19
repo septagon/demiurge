@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 
-namespace DemiurgeConsole
+namespace DemiurgeLib
 {
     public class WaterTableArgs
     {
@@ -32,7 +32,7 @@ namespace DemiurgeConsole
             random = random ?? new Random((int)args.seed);
             baseField = baseField ?? new Simplex2D(bmp.Width, bmp.Height, args.baseNoiseScale, args.seed);
 
-            Field2d<float> field = new FieldFromBitmap(bmp);
+            Field2d<float> field = new DemiurgeLib.Common.Utils.FieldFromBitmap(bmp);
 
             baseField = new NormalizedComposition2d<float>(baseField, new ScaleTransform(new Simplex2D(baseField.Width, baseField.Height, args.baseNoiseScale, args.seed), args.baseNoiseScalar));
 
