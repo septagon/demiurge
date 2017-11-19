@@ -5,8 +5,23 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DemiurgeApp"
         mc:Ignorable="d"
-        Title="Demiurge App" Height="350" Width="525">
+        Title="Demiurge App" Height="350" Width="525"
+        AllowDrop="True">
     <Grid>
-        <Button Content="Run Meter-scale Map Scenario"  Click="RunMeterScaleMapScenario" />
+        <StackPanel>
+            <ScrollViewer Height="280">
+                <Grid Name="SettingsGrid">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition Width="20" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                </Grid>
+            </ScrollViewer>
+            
+            <Button 
+                Content="Run Meter-scale Map Scenario" 
+                Click="RunMeterScaleMapScenario" />
+        </StackPanel>
     </Grid>
 </Window>
