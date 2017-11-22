@@ -5,19 +5,44 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DemiurgeApp"
         mc:Ignorable="d"
-        Title="Demiurge App" Height="350" Width="525"
+        Title="Demiurge App" Height="380" Width="920"
         AllowDrop="True">
     <Grid>
         <StackPanel>
-            <ScrollViewer Height="280">
-                <Grid Name="SettingsGrid">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="100" />
-                        <ColumnDefinition Width="20" />
-                        <ColumnDefinition />
-                    </Grid.ColumnDefinitions>
-                </Grid>
-            </ScrollViewer>
+            
+            
+            <!-- Independent renderer settings. -->
+            <StackPanel Orientation="Horizontal">
+                <ScrollViewer Height="300" Width="300">
+                    <Grid Name="WaterTableArgsGrid">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </ScrollViewer>
+                
+                <ScrollViewer Height="300" Width="300">
+                    <Grid Name="MeterScaleMapArgsGrid">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </ScrollViewer>
+                
+                <ScrollViewer Height="300" Width="300">
+                    <Grid Name="RenderArgs">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="20" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+                </ScrollViewer>
+            </StackPanel>
             
             <Button 
                 Content="Run Meter-scale Map Scenario" 

@@ -9,8 +9,16 @@ namespace DemiurgeLib
 {
     public class WaterTableArgs
     {
+        /// <summary>
+        /// DEPRECATED
+        /// </summary>
         public string inputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\input\\";
+
+        /// <summary>
+        /// DEPRECATED
+        /// </summary>
         public string outputPath = "C:\\Users\\Justin Murray\\Desktop\\maps\\output\\";
+
         public long seed = 0;
         public float baseNoiseScale = 0.015f;
         public float baseNoiseScalar = 0.1f;

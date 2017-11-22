@@ -16,49 +16,47 @@ namespace DemiurgeApp
         {
             InitializeComponent();
 
-            SetUpWaterTableArgsRows();
-
-            // TODO: Do the same for MSM args and all other args.
+            SetUpArgsRows(new WaterTableArgs(), this.WaterTableArgsGrid);
+            SetUpArgsRows(new MeterScaleMap.Args(null, null, null, null), this.MeterScaleMapArgsGrid);
 
             // TODO: Enable interactivity, so you can generate a WTF, then generate an MSM, then generate output, all independently.
         }
 
-        private void SetUpWaterTableArgsRows()
+        private void SetUpArgsRows<T>(T prototype, Grid target)
         {
-            WaterTableArgs defaultArgs = new WaterTableArgs();
-            var fields = typeof(WaterTableArgs).GetFields();
+            var fields = typeof(T).GetFields();
 
             for (int idx = 0; idx < fields.Length; idx++)
             {
-                this.SettingsGrid.RowDefinitions.Add(new RowDefinition());
+                target.RowDefinitions.Add(new RowDefinition());
 
                 // Make the label.
                 TextBlock label = new TextBlock();
                 label.Text = fields[idx].Name;
                 Grid.SetRow(label, idx);
                 Grid.SetColumn(label, 0);
-                this.SettingsGrid.Children.Add(label);
+                target.Children.Add(label);
 
                 // Make the content display/setter.
                 Type type = fields[idx].FieldType;
                 if (type == typeof(int) || type == typeof(long) || type == typeof(float))
                 {
                     TextBox value = new TextBox();
-                    value.Text = fields[idx].GetValue(defaultArgs).ToString();
+                    value.Text = fields[idx].GetValue(prototype).ToString();
                     Grid.SetRow(value, idx);
                     Grid.SetColumn(value, 2);
-                    this.SettingsGrid.Children.Add(value);
+                    target.Children.Add(value);
                 }
                 else if (type == typeof(string))
                 {
                     CheckBox checkBox = new CheckBox();
                     Grid.SetRow(checkBox, idx);
                     Grid.SetColumn(checkBox, 1);
-                    this.SettingsGrid.Children.Add(checkBox);
+                    target.Children.Add(checkBox);
 
                     // TODO: Support string fields other than files.
                     Button button = new Button();
-                    button.Content = fields[idx].GetValue(defaultArgs);
+                    button.Content = fields[idx].GetValue(prototype);
                     button.Click += (sender, e) =>
                     {
                         // File picker.
@@ -74,7 +72,7 @@ namespace DemiurgeApp
                     };
                     Grid.SetRow(button, idx);
                     Grid.SetColumn(button, 2);
-                    this.SettingsGrid.Children.Add(button);
+                    target.Children.Add(button);
                 }
             }
         }
