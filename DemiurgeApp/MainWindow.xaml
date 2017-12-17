@@ -5,48 +5,180 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DemiurgeApp"
         mc:Ignorable="d"
-        Title="Demiurge App" Height="380" Width="920"
+        Title="Demiurge App" Height="740" Width="500"
         AllowDrop="True">
     <Grid>
         <StackPanel>
-            
-            
             <!-- Independent renderer settings. -->
-            <StackPanel Orientation="Horizontal">
-                <ScrollViewer Height="300" Width="300">
-                    <Grid Name="WaterTableArgsGrid">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                    </Grid>
-                </ScrollViewer>
-                
-                <ScrollViewer Height="300" Width="300">
-                    <Grid Name="MeterScaleMapArgsGrid">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                    </Grid>
-                </ScrollViewer>
-                
-                <ScrollViewer Height="300" Width="300">
-                    <Grid Name="RenderArgs">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150" />
-                            <ColumnDefinition Width="20" />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                    </Grid>
-                </ScrollViewer>
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="200" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Background="LightCyan">Waters Input</Label>
+                <TextBox Grid.Row="0" Grid.Column="1" x:Name="WatersInput">
+                    C:\waters.png
+                </TextBox>
+
+                <Label Grid.Row="1" Grid.Column="0">Heights Input</Label>
+                <TextBox Grid.Row="1" Grid.Column="1" Background="LightCyan" x:Name="HeightsInput">
+                    C:\heights.png
+                </TextBox>
+
+                <Label Grid.Row="2" Grid.Column="0" Background="LightCyan">Roughness Input</Label>
+                <TextBox Grid.Row="2" Grid.Column="1" x:Name="RoughnessInput">
+                    C:\roughness.png
+                </TextBox>
+
+                <Label Grid.Row="3" Grid.Column="0">Rain Input</Label>
+                <TextBox Grid.Row="3" Grid.Column="1" Background="LightCyan" x:Name="RainInput">
+                    
+                </TextBox>
+
+                <Label Grid.Row="4" Grid.Column="0" Background="LightCyan">Random Seed</Label>
+                <TextBox Grid.Row="4" Grid.Column="1" x:Name="Seed">
+                    0
+                </TextBox>
+
+                <Label Grid.Row="5" Grid.Column="0">Meters Per Input Pixel</Label>
+                <TextBox Grid.Row="5" Grid.Column="1" Background="LightCyan" x:Name="MetersPerPixelIn">
+                    800
+                </TextBox>
+
+                <Label Grid.Row="6" Grid.Column="0" Background="LightCyan">Heights Input Meter Scale</Label>
+                <TextBox Grid.Row="6" Grid.Column="1" x:Name="HeightsMeterScale">
+                    500
+                </TextBox>
+
+                <Label Grid.Row="7" Grid.Column="0">Roughness Input Meter Scale</Label>
+                <TextBox Grid.Row="7" Grid.Column="1" Background="LightCyan" x:Name="RoughnessMeterScale">
+                    2000
+                </TextBox>
+
+                <Label Grid.Row="8" Grid.Column="0" Background="LightCyan">Valley Radius Meters</Label>
+                <TextBox Grid.Row="8" Grid.Column="1" x:Name="ValleyRadiusMeters">
+                    5000
+                </TextBox>
+
+                <Label Grid.Row="9" Grid.Column="0">Canyon Radius Meters</Label>
+                <TextBox Grid.Row="9" Grid.Column="1" Background="LightCyan" x:Name="CanyonRadiusMeters">
+                    1000
+                </TextBox>
+
+                <Label Grid.Row="10" Grid.Column="0" Background="LightCyan">Erosion Radius Meters</Label>
+                <TextBox Grid.Row="10" Grid.Column="1" x:Name="ErosionRadiusMeters">
+                    50
+                </TextBox>
+
+                <Label Grid.Row="11" Grid.Column="0">River Capacity To Width</Label>
+                <TextBox Grid.Row="11" Grid.Column="1" Background="LightCyan" IsEnabled="False">
+                    FUNCTION, CANNOT BE SET FROM  UI
+                </TextBox>
+
+                <Label Grid.Row="12" Grid.Column="0" Background="LightCyan">Valley Strength</Label>
+                <TextBox Grid.Row="12" Grid.Column="1" x:Name="ValleyStrength">
+                    0.95
+                </TextBox>
+
+                <Label Grid.Row="13" Grid.Column="0">Canyon Strength</Label>
+                <TextBox Grid.Row="13" Grid.Column="1" Background="LightCyan" x:Name="CanyonStrength">
+                    0.99
+                </TextBox>
+
+                <Label Grid.Row="14" Grid.Column="0" Background="LightCyan">Hydro Sensitivity</Label>
+                <TextBox Grid.Row="14" Grid.Column="1" x:Name="HydroSensitivity">
+                    8
+                </TextBox>
+
+                <Label Grid.Row="15" Grid.Column="0">Hydro Shore Threshold</Label>
+                <TextBox Grid.Row="15" Grid.Column="1" Background="LightCyan" x:Name="WtfShoreThreshold">
+                    0.5
+                </TextBox>
+
+                <Label Grid.Row="16" Grid.Column="0" Background="LightCyan">Water Table Shore</Label>
+                <TextBox Grid.Row="16" Grid.Column="1" x:Name="WtfShore">
+                    0.01
+                </TextBox>
+
+                <Label Grid.Row="17" Grid.Column="0">Water Table Iterations</Label>
+                <TextBox Grid.Row="17" Grid.Column="1" Background="LightCyan" x:Name="WtfIt">
+                    10
+                </TextBox>
+
+                <Label Grid.Row="18" Grid.Column="0" Background="LightCyan">Water Table Length</Label>
+                <TextBox Grid.Row="18" Grid.Column="1" x:Name="WtfLen">
+                    5
+                </TextBox>
+
+                <Label Grid.Row="19" Grid.Column="0">Water Table Grade</Label>
+                <TextBox Grid.Row="19" Grid.Column="1" Background="LightCyan" x:Name="WtfGrade">
+                    0
+                </TextBox>
+
+                <Label Grid.Row="20" Grid.Column="0" Background="LightCyan">Water Table Carve</Label>
+                <TextBox Grid.Row="20" Grid.Column="1" x:Name="WtfCarve">
+                    0.5
+                </TextBox>
+
+                <Label Grid.Row="21" Grid.Column="0">Water Table Multiplier</Label>
+                <TextBox Grid.Row="21" Grid.Column="1" Background="LightCyan" x:Name="WtfMultiplier">
+                    1.3
+                </TextBox>
+
+                <Label Grid.Row="22" Grid.Column="0" Background="LightCyan">Output Directory</Label>
+                <TextBox Grid.Row="22" Grid.Column="1" x:Name="OutputDirectory">
+                    C:\
+                </TextBox>
+
+                <Label Grid.Row="23" Grid.Column="0">Output Meters Per Pixel</Label>
+                <TextBox Grid.Row="23" Grid.Column="1" Background="LightCyan" x:Name="MetersPerPixelOut">
+                    100
+                </TextBox>
+
+                <Label Grid.Row="24" Grid.Column="0" Background="LightCyan">Output Source Resolution</Label>
+                <TextBox Grid.Row="24" Grid.Column="1" x:Name="OutputSourceResolution">
+                    32
+                </TextBox>
+
+                <Label Grid.Row="25" Grid.Column="0">Output Submap Prefix</Label>
+                <TextBox Grid.Row="25" Grid.Column="1" Background="LightCyan" x:Name="OutputSubmapPrefix">
+                    submap
+                </TextBox>
+            </Grid>
             
             <Button 
                 Content="Run Meter-scale Map Scenario" 
-                Click="RunMeterScaleMapScenario" />
+                Click="RunMeterScaleMapFromArguments" />
         </StackPanel>
     </Grid>
 </Window>

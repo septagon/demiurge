@@ -1,6 +1,7 @@
 ﻿using DemiurgeLib;
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using static DemiurgeLib.Common.Utils;
@@ -15,75 +16,52 @@ namespace DemiurgeApp
         public MainWindow()
         {
             InitializeComponent();
-
-            SetUpArgsRows(new WaterTableArgs(), this.WaterTableArgsGrid);
-            SetUpArgsRows(new MeterScaleMap.Args(null, null, null, null), this.MeterScaleMapArgsGrid);
-
-            // TODO: Enable interactivity, so you can generate a WTF, then generate an MSM, then generate output, all independently.
         }
 
-        private void SetUpArgsRows<T>(T prototype, Grid target)
+        private void RunMeterScaleMapFromArguments(object sender, RoutedEventArgs e)
         {
-            var fields = typeof(T).GetFields();
+            var waters = File.Exists(this.WatersInput.Text) ? new FieldFromBitmap(new Bitmap(this.WatersInput.Text)) : null;
+            var heights = File.Exists(this.HeightsInput.Text) ? new FieldFromBitmap(new Bitmap(this.HeightsInput.Text)) : null;
+            var roughness = File.Exists(this.RoughnessInput.Text) ? new FieldFromBitmap(new Bitmap(this.RoughnessInput.Text)) : null;
+            var rain = File.Exists(this.RainInput.Text) ? new FieldFromBitmap(new Bitmap(this.RainInput.Text)) : null;
+            var args = new MeterScaleMap.Args(waters, heights, roughness, rain);
 
-            for (int idx = 0; idx < fields.Length; idx++)
-            {
-                target.RowDefinitions.Add(new RowDefinition());
+            if (!long.TryParse(this.Seed.Text, out args.seed)) args.seed = 0;
+            if (!float.TryParse(this.MetersPerPixelIn.Text, out args.metersPerPixel)) args.metersPerPixel = 1600f;
+            if (!float.TryParse(this.HeightsMeterScale.Text, out args.baseHeightMaxInMeters)) args.baseHeightMaxInMeters = 2000f;
+            if (!float.TryParse(this.RoughnessMeterScale.Text, out args.mountainHeightMaxInMeters)) args.mountainHeightMaxInMeters = 2000f;
+            if (!float.TryParse(this.ValleyRadiusMeters.Text, out args.valleyRadiusInMeters)) args.valleyRadiusInMeters = 5000f;
+            if (!float.TryParse(this.CanyonRadiusMeters.Text, out args.canyonRadiusInMeters)) args.canyonRadiusInMeters = 1000f;
+            if (!float.TryParse(this.ErosionRadiusMeters.Text, out args.erosionRadiusInMeters)) args.erosionRadiusInMeters = 50f;
 
-                // Make the label.
-                TextBlock label = new TextBlock();
-                label.Text = fields[idx].Name;
-                Grid.SetRow(label, idx);
-                Grid.SetColumn(label, 0);
-                target.Children.Add(label);
+            if (!float.TryParse(this.ValleyStrength.Text, out args.valleyStrength)) args.valleyStrength = 0.8f;
+            if (!float.TryParse(this.CanyonStrength.Text, out args.canyonStrength)) args.canyonStrength = 0.999f;
 
-                // Make the content display/setter.
-                Type type = fields[idx].FieldType;
-                if (type == typeof(int) || type == typeof(long) || type == typeof(float))
-                {
-                    TextBox value = new TextBox();
-                    value.Text = fields[idx].GetValue(prototype).ToString();
-                    Grid.SetRow(value, idx);
-                    Grid.SetColumn(value, 2);
-                    target.Children.Add(value);
-                }
-                else if (type == typeof(string))
-                {
-                    CheckBox checkBox = new CheckBox();
-                    Grid.SetRow(checkBox, idx);
-                    Grid.SetColumn(checkBox, 1);
-                    target.Children.Add(checkBox);
+            if (!int.TryParse(this.HydroSensitivity.Text, out args.hydroSensitivity)) args.hydroSensitivity = 8;
+            if (!float.TryParse(this.WtfShoreThreshold.Text, out args.hydroShoreThreshold)) args.hydroShoreThreshold = 0.5f;
+            if (!float.TryParse(this.WtfShore.Text, out args.wtfShore)) args.wtfShore = 0.01f;
+            if (!int.TryParse(this.WtfIt.Text, out args.wtfIt)) args.wtfIt = 10;
+            if (!int.TryParse(this.WtfLen.Text, out args.wtfLen)) args.wtfLen = 5;
+            if (!float.TryParse(this.WtfGrade.Text, out args.wtfGrade)) args.wtfGrade = 0f;
+            if (!float.TryParse(this.WtfCarve.Text, out args.wtfCarveAdd)) args.wtfCarveAdd = 0.3f;
+            if (!float.TryParse(this.WtfMultiplier.Text, out args.wtfCarveMul)) args.wtfCarveMul = 1.3f;
 
-                    // TODO: Support string fields other than files.
-                    Button button = new Button();
-                    button.Content = fields[idx].GetValue(prototype);
-                    button.Click += (sender, e) =>
-                    {
-                        // File picker.
-                        //var dialog = new System.Windows.Forms.OpenFileDialog();
-                        var dialog = new System.Windows.Forms.FolderBrowserDialog();
-                        var result = dialog.ShowDialog();
-                        if (result == System.Windows.Forms.DialogResult.OK)
-                        {
-                            // Do something.
-                            //button.Content = dialog.FileName;
-                            button.Content = dialog.SelectedPath;
-                        }
-                    };
-                    Grid.SetRow(button, idx);
-                    Grid.SetColumn(button, 2);
-                    target.Children.Add(button);
-                }
-            }
+            string outputDir = this.OutputDirectory.Text;
+            string outputPrefix = this.OutputSubmapPrefix.Text;
+            float metersPerPixelOut = float.Parse(this.MetersPerPixelOut.Text);
+            int outputSourceResolution = int.Parse(this.OutputSourceResolution.Text);
+
+            var msm = new MeterScaleMap(args);
+            msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), outputDir);
+            msm.OutputMapGrid(metersPerPixelOut, outputDir, outputPrefix, outputSourceResolution);
         }
 
         private void RunMeterScaleMapScenario(object sender, RoutedEventArgs e)
         {
-            var wta = new WaterTableArgs();
-            wta.inputPath = "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\input\\";
-            var waters = new FieldFromBitmap(new Bitmap(wta.inputPath + "coastline.png"));
-            var heights = new FieldFromBitmap(new Bitmap(wta.inputPath + "heights.png"));
-            var roughness = new FieldFromBitmap(new Bitmap(wta.inputPath + "roughness.png"));
+            string inputPath = "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\input\\";
+            var waters = new FieldFromBitmap(new Bitmap(inputPath + "coastline.png"));
+            var heights = new FieldFromBitmap(new Bitmap(inputPath + "heights.png"));
+            var roughness = new FieldFromBitmap(new Bitmap(inputPath + "roughness.png"));
             var msmArgs = new MeterScaleMap.Args(waters, heights, roughness, null);
             msmArgs.seed = System.DateTime.UtcNow.Ticks;
             msmArgs.metersPerPixel = 800;
@@ -94,11 +72,6 @@ namespace DemiurgeApp
             
             msm.OutputHighLevelMaps(new Bitmap(waters.Width, waters.Height), "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\");
             msm.OutputMapGrid(100, "C:\\Users\\Justin Murray\\Desktop\\egwethoon\\", "submap", 32);
-        }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-
         }
     }
 }
