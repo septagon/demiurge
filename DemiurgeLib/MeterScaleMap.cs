@@ -45,6 +45,7 @@ namespace DemiurgeLib
 
             public int hydroSensitivity = 8;
             public float hydroShoreThreshold = 0.5f;
+            public float riverSeparationMeters = 12 * 1600f;
             public float wtfShore = 0.01f;
             public int wtfIt = 10;
             public int wtfLen = 5;
@@ -176,7 +177,7 @@ namespace DemiurgeLib
         private static WaterTableField InitializeWaterTableField(Args args, Random random)
         {
             BrownianTree tree = BrownianTree.CreateFromOther(args.watersDrawing, (x) => x > 0.5f ? BrownianTree.Availability.Available : BrownianTree.Availability.Unavailable, random);
-            tree.RunDefaultTree();
+            tree.RunDefaultTree((int)(args.riverSeparationMeters / args.metersPerPixel));
 
             HydrologicalField hydro = new HydrologicalField(tree, args.hydroSensitivity, args.hydroShoreThreshold);
             IField2d<float> scaledHeights = new ScaleTransform(args.heightsDrawing, args.baseHeightMaxInMeters);

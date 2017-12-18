@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DemiurgeApp"
         mc:Ignorable="d"
-        Title="Demiurge App" Height="740" Width="500"
+        Title="Demiurge App" Height="830" Width="500"
         AllowDrop="True">
     <Grid>
         <StackPanel>
@@ -17,6 +17,7 @@
                 </Grid.ColumnDefinitions>
 
                 <Grid.RowDefinitions>
+                    <RowDefinition/>
                     <RowDefinition/>
                     <RowDefinition/>
                     <RowDefinition/>
@@ -125,60 +126,89 @@
                     0.5
                 </TextBox>
 
-                <Label Grid.Row="16" Grid.Column="0" Background="LightCyan">Water Table Shore</Label>
-                <TextBox Grid.Row="16" Grid.Column="1" x:Name="WtfShore">
+                <Label Grid.Row="16" Grid.Column="0" Background="LightCyan">River Separation Meters</Label>
+                <TextBox Grid.Row="16" Grid.Column="1" x:Name="RiverSeparationMeters">
+                    5000
+                </TextBox>
+
+                <Label Grid.Row="17" Grid.Column="0">Water Table Shore</Label>
+                <TextBox Grid.Row="17" Grid.Column="1" Background="LightCyan" x:Name="WtfShore">
                     0.01
                 </TextBox>
 
-                <Label Grid.Row="17" Grid.Column="0">Water Table Iterations</Label>
-                <TextBox Grid.Row="17" Grid.Column="1" Background="LightCyan" x:Name="WtfIt">
+                <Label Grid.Row="18" Grid.Column="0" Background="LightCyan">Water Table Iterations</Label>
+                <TextBox Grid.Row="18" Grid.Column="1" x:Name="WtfIt">
                     10
                 </TextBox>
 
-                <Label Grid.Row="18" Grid.Column="0" Background="LightCyan">Water Table Length</Label>
-                <TextBox Grid.Row="18" Grid.Column="1" x:Name="WtfLen">
+                <Label Grid.Row="19" Grid.Column="0">Water Table Length</Label>
+                <TextBox Grid.Row="19" Grid.Column="1" Background="LightCyan" x:Name="WtfLen">
                     5
                 </TextBox>
 
-                <Label Grid.Row="19" Grid.Column="0">Water Table Grade</Label>
-                <TextBox Grid.Row="19" Grid.Column="1" Background="LightCyan" x:Name="WtfGrade">
+                <Label Grid.Row="20" Grid.Column="0" Background="LightCyan">Water Table Grade</Label>
+                <TextBox Grid.Row="20" Grid.Column="1" x:Name="WtfGrade">
                     0
                 </TextBox>
 
-                <Label Grid.Row="20" Grid.Column="0" Background="LightCyan">Water Table Carve</Label>
-                <TextBox Grid.Row="20" Grid.Column="1" x:Name="WtfCarve">
+                <Label Grid.Row="21" Grid.Column="0">Water Table Carve</Label>
+                <TextBox Grid.Row="21" Grid.Column="1" Background="LightCyan" x:Name="WtfCarve">
                     0.5
                 </TextBox>
 
-                <Label Grid.Row="21" Grid.Column="0">Water Table Multiplier</Label>
-                <TextBox Grid.Row="21" Grid.Column="1" Background="LightCyan" x:Name="WtfMultiplier">
+                <Label Grid.Row="22" Grid.Column="0" Background="LightCyan">Water Table Multiplier</Label>
+                <TextBox Grid.Row="22" Grid.Column="1" x:Name="WtfMultiplier">
                     1.3
                 </TextBox>
 
-                <Label Grid.Row="22" Grid.Column="0" Background="LightCyan">Output Directory</Label>
-                <TextBox Grid.Row="22" Grid.Column="1" x:Name="OutputDirectory">
+                <Label Grid.Row="23" Grid.Column="0">Output Directory</Label>
+                <TextBox Grid.Row="23" Grid.Column="1" Background="LightCyan" x:Name="OutputDirectory">
                     C:\
                 </TextBox>
 
-                <Label Grid.Row="23" Grid.Column="0">Output Meters Per Pixel</Label>
-                <TextBox Grid.Row="23" Grid.Column="1" Background="LightCyan" x:Name="MetersPerPixelOut">
+                <Label Grid.Row="24" Grid.Column="0" Background="LightCyan">Output Meters Per Pixel</Label>
+                <TextBox Grid.Row="24" Grid.Column="1" x:Name="MetersPerPixelOut">
                     100
                 </TextBox>
 
-                <Label Grid.Row="24" Grid.Column="0" Background="LightCyan">Output Source Resolution</Label>
-                <TextBox Grid.Row="24" Grid.Column="1" x:Name="OutputSourceResolution">
+                <Label Grid.Row="25" Grid.Column="0">Output Source Resolution</Label>
+                <TextBox Grid.Row="25" Grid.Column="1" Background="LightCyan" x:Name="OutputSourceResolution">
                     32
                 </TextBox>
 
-                <Label Grid.Row="25" Grid.Column="0">Output Submap Prefix</Label>
-                <TextBox Grid.Row="25" Grid.Column="1" Background="LightCyan" x:Name="OutputSubmapPrefix">
+                <Label Grid.Row="26" Grid.Column="0" Background="LightCyan">Output Submap Prefix</Label>
+                <TextBox Grid.Row="26" Grid.Column="1" x:Name="OutputSubmapPrefix">
                     submap
                 </TextBox>
             </Grid>
-            
+
+            <Button
+                Content="Regenerate Meter-scale Map"
+                Click="RegenerateMeterScaleMap" />
+
+            <StackPanel Orientation="Horizontal">
+                <Label>X:</Label>
+                <TextBox Width="30" x:Name="SubmapX">32</TextBox>
+                <Label>Y:</Label>
+                <TextBox Width="30" x:Name="SubmapY">32</TextBox>
+                <Label>Width:</Label>
+                <TextBox Width="30" x:Name="SubmapW">32</TextBox>
+                <Label>Height:</Label>
+                <TextBox Width="30" x:Name="SubmapH">32</TextBox>
+                <Label>Up-Res Factor:</Label>
+                <TextBox Width="30" x:Name="SubmapRes">4</TextBox>
+                <Button
+                    x:Name="GenerateSubmapButton"
+                    Content="Generate Submap"
+                    Click="GenerateSubmap" 
+                    IsEnabled="false" />
+            </StackPanel>
+
             <Button 
-                Content="Run Meter-scale Map Scenario" 
-                Click="RunMeterScaleMapFromArguments" />
+                x:Name="RunFullMapButton"
+                Content="Run Full Map" 
+                Click="RunFullMap" 
+                IsEnabled="False" />
         </StackPanel>
     </Grid>
 </Window>
